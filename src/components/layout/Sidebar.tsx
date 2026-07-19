@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useUIStore } from '@/stores/uiStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useSessionStore } from '@/stores/sessionStore'
+import { useTranslation } from '@/stores/languageStore'
 import {
   LayoutDashboard,
   BookOpen,
@@ -13,20 +14,21 @@ import {
   X,
 } from 'lucide-react'
 
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: BookOpen, label: 'Kế hoạch', path: '/plans' },
-  { icon: Focus, label: 'Focus Session', path: '/focus' },
-  { icon: Mic, label: 'Interview', path: '/interview/config' },
-  { icon: BarChart3, label: 'Lịch sử', path: '/history' },
-]
-
 export function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { sidebarOpen, setSidebarOpen } = useUIStore()
   const { user, logout } = useAuthStore()
   const { activeSession } = useSessionStore()
+  const { t } = useTranslation()
+
+  const navItems = [
+    { icon: LayoutDashboard, label: t('dashboard'), path: '/dashboard' },
+    { icon: BookOpen, label: t('plans'), path: '/plans' },
+    { icon: Focus, label: t('focus'), path: '/focus' },
+    { icon: Mic, label: t('interview'), path: '/interview/config' },
+    { icon: BarChart3, label: t('history'), path: '/history' },
+  ]
 
   const handleLogout = () => {
     logout()
@@ -74,7 +76,7 @@ export function Sidebar() {
 
           {/* Close button — mobile only */}
           <button
-            className="p-1 hover:bg-zinc-100 rounded lg:hidden"
+            className="p-1 hover:bg-muted rounded lg:hidden"
             onClick={() => setSidebarOpen(false)}
           >
             <X size={18} className="text-muted-foreground" />
@@ -99,8 +101,8 @@ export function Sidebar() {
                   flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
                   transition-all duration-150
                   ${active
-                    ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                    : 'text-zinc-600 hover:bg-zinc-50 hover:text-foreground font-medium'
+                    ? 'bg-primary/15 text-primary font-semibold'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }
                 `}
                 onClick={() => {
@@ -108,7 +110,7 @@ export function Sidebar() {
                   if (window.innerWidth < 1024) setSidebarOpen(false)
                 }}
               >
-                <Icon size={18} className={active ? 'text-indigo-600' : ''} />
+                <Icon size={18} className={active ? 'text-primary' : ''} />
                 <span>{item.label}</span>
                 {showPulse && (
                   <span className="ml-auto w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -134,18 +136,18 @@ export function Sidebar() {
 
           <Link
             to="/settings"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-foreground transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <Settings size={16} />
-            <span>Cài đặt</span>
+            <span>{t('settings')}</span>
           </Link>
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-zinc-600 hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"
           >
             <LogOut size={16} />
-            <span>Đăng xuất</span>
+            <span>{t('logout')}</span>
           </button>
         </div>
       </aside>

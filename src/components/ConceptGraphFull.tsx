@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ReactFlow, {
   Node,
@@ -17,6 +17,7 @@ import { X, Star, Mic, BookOpen } from 'lucide-react'
 import { getMasteryClass } from '@/types'
 import type { Concept } from '@/types'
 import '@/styles/concept-graph.css'
+import { usePlanStore } from '@/stores/planStore'
 
 // ─── Shared Mock Data ───────────────────────────────────────────
 export const mockConcepts: Concept[] = [
@@ -129,6 +130,9 @@ interface ConceptGraphFullProps {
 
 export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFullProps) {
   const navigate = useNavigate()
+  const { concepts } = usePlanStore()
+
+  const activeConcepts = concepts[planId] || mockConcepts
 
   // ─── State ──────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('')
@@ -136,8 +140,8 @@ export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFull
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null)
 
   // Build initial nodes
-  const createNodes = useCallback((): Node[] => {
-    return mockConcepts.map(concept => ({
+  const createNodes = useCallback((conceptsList: Concept[]): Node[] => {
+    return conceptsList.map(concept => ({
       id: concept.id,
       type: 'concept',
       data: {
@@ -146,12 +150,20 @@ export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFull
         isRemediating: concept.isRemediating,
         dimmed: false,
       },
-      position: nodePositions[concept.id] || { x: 0, y: 0 },
+      position: nodePositions[concept.id] || { 
+        x: 100 + Math.random() * 200, 
+        y: 100 + Math.random() * 200 
+      },
     }))
   }, [])
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(createNodes())
-  const [edges, , onEdgesChange] = useEdgesState(buildEdges(mockConcepts))
+  const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+
+  useEffect(() => {
+    setNodes(createNodes(activeConcepts))
+    setEdges(buildEdges(activeConcepts))
+  }, [activeConcepts, createNodes, setNodes, setEdges])
 
   // ─── Filter / Search Logic ──────────────────────────────────
   const matchesFilter = useCallback((concept: Concept): boolean => {
@@ -171,7 +183,7 @@ export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFull
   // Apply filter + search → dim non-matching nodes
   const applyFilters = useCallback(() => {
     setNodes(prev => prev.map(node => {
-      const concept = mockConcepts.find(c => c.id === node.id)
+      const concept = activeConcepts.find(c => c.id === node.id)
       if (!concept) return node
       const isMatch = matchesFilter(concept) && matchesSearch(concept.name)
       return {
@@ -179,7 +191,7 @@ export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFull
         data: { ...node.data, dimmed: !isMatch },
       }
     }))
-  }, [matchesFilter, matchesSearch, setNodes])
+  }, [matchesFilter, matchesSearch, activeConcepts, setNodes])
 
   // Re-apply whenever filter or search changes
   useMemo(() => {
@@ -197,12 +209,12 @@ export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFull
   }, [])
 
   const selectedConcept = selectedConceptId
-    ? mockConcepts.find(c => c.id === selectedConceptId)
+    ? activeConcepts.find(c => c.id === selectedConceptId)
     : null
 
   // Find dependents (concepts that have this as a prerequisite)
   const dependents = selectedConcept
-    ? mockConcepts.filter(c => c.prerequisites.includes(selectedConcept.id))
+    ? activeConcepts.filter(c => c.prerequisites.includes(selectedConcept.id))
     : []
 
   const hasActiveFilters = searchQuery.trim() !== '' || activeFilter !== 'all'
@@ -352,7 +364,7 @@ export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFull
                   <div className="cg-detail-panel__section-label">Tiên quyết (Prerequisites)</div>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedConcept.prerequisites.map(pid => {
-                      const prereq = mockConcepts.find(c => c.id === pid)
+                      const prereq = activeConcepts.find(c => c.id === pid)
                       if (!prereq) return null
                       return (
                         <button

@@ -3,13 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   Pause,
   X,
-  Volume2,
   Mic,
   ArrowRight,
   ChevronRight,
   ChevronLeft,
-  ChevronDown,
-  ChevronUp,
   RotateCw,
   Award,
   AlertTriangle,
@@ -25,9 +22,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { mockApi, Question, GradeResult, TurnRecord } from '@/lib/mockApi'
+import '@/styles/focus-session.css'
 import '@/styles/interview-session.css'
 import { useSessionStore } from '@/stores/sessionStore'
 import { usePlanStore } from '@/stores/planStore'
+import { useTranslation } from '@/stores/languageStore'
 
 // ─── Types & Interfaces ─────────────────────────────────────────
 interface ConceptProgress {
@@ -38,7 +37,7 @@ interface ConceptProgress {
 }
 
 const initialProgressList: ConceptProgress[] = [
-  { id: '1', name: 'Scope trong JS', status: 'done', score: 8.5 },
+  { id: '1', name: 'Scope trong JS', status: 'done', score: 0.85 },
   { id: '2', name: 'Closures', status: 'current', score: null },
   { id: '3', name: 'Promises', status: 'pending', score: null },
   { id: '4', name: 'Async/Await', status: 'pending', score: null },
@@ -64,6 +63,7 @@ interface InterviewState {
 }
 
 type InterviewAction =
+  | { type: 'INITIALIZE_QUEUE'; payload: { queue: ConceptProgress[]; startIndex: number } }
   | { type: 'START_SESSION' }
   | { type: 'QUESTION_LOADED'; payload: Question }
   | { type: 'SET_REPLY_TEXT'; payload: string }
@@ -80,6 +80,18 @@ type InterviewAction =
 // ─── Reducer ────────────────────────────────────────────────────
 function interviewReducer(state: InterviewState, action: InterviewAction): InterviewState {
   switch (action.type) {
+    case 'INITIALIZE_QUEUE':
+      return {
+        ...state,
+        conceptQueue: action.payload.queue,
+        currentConceptIndex: action.payload.startIndex,
+        currentTurn: 0,
+        turns: [],
+        activeQuestion: null,
+        activeGrade: null,
+        replyText: '',
+      }
+
     case 'START_SESSION':
       return { ...state, status: 'loading_question' }
       
@@ -136,40 +148,31 @@ function interviewReducer(state: InterviewState, action: InterviewAction): Inter
     }
 
     case 'NEXT_CONCEPT': {
-      const isComplete = state.currentConceptIndex >= state.conceptQueue.length - 1
-      if (isComplete) {
+      const nextIdx = state.currentConceptIndex + 1
+      if (nextIdx >= state.conceptQueue.length) {
         return { ...state, status: 'complete' }
       }
-      
       const updatedQueue = [...state.conceptQueue]
-      
-      // Calculate score for current concept based on turns
-      const currentConceptTurns = state.turns.slice(-state.currentTurn - 1)
-      const avg = currentConceptTurns.length > 0
-        ? currentConceptTurns.reduce((sum, t) => sum + t.grade.score, 0) / currentConceptTurns.length
-        : 0
-      
       updatedQueue[state.currentConceptIndex] = {
         ...updatedQueue[state.currentConceptIndex],
         status: 'done',
-        score: Number(avg.toFixed(1))
+        score: state.turns.length > 0
+          ? state.turns.reduce((acc, curr) => acc + curr.grade.score, 0) / state.turns.length
+          : 0.8
       }
-
-      const nextIndex = state.currentConceptIndex + 1
-      updatedQueue[nextIndex] = {
-        ...updatedQueue[nextIndex],
+      updatedQueue[nextIdx] = {
+        ...updatedQueue[nextIdx],
         status: 'current'
       }
-
       return {
         ...state,
         status: 'loading_question',
-        currentConceptIndex: nextIndex,
+        currentConceptIndex: nextIdx,
         currentTurn: 0,
-        conceptQueue: updatedQueue,
+        turns: [],
         activeQuestion: null,
         activeGrade: null,
-        replyText: ''
+        replyText: '',
       }
     }
 
@@ -180,29 +183,28 @@ function interviewReducer(state: InterviewState, action: InterviewAction): Inter
       return { ...state, pausedAt: null }
 
     case 'END_SESSION':
-      return { ...state, status: 'complete' }
+      return { ...state, status: 'idle' }
 
     case 'AI_FALLBACK':
-      return { ...state, fallbackMode: !state.fallbackMode }
+      return { ...state, fallbackMode: true, status: 'awaiting_answer' }
 
     default:
       return state
   }
 }
 
-// ─── Audio Chime Helper ─────────────────────────────────────────
-const playVoiceSynthesizer = (text: string) => {
-  try {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'vi-VN'
-      utterance.rate = 0.95
-      window.speechSynthesis.speak(utterance)
-    }
-  } catch (e) {
-    console.error('Không thể phát âm thanh TTS:', e)
-  }
+const initialInterviewState: InterviewState = {
+  status: 'idle',
+  currentConceptIndex: 0,
+  currentTurn: 0,
+  maxTurns: 3,
+  conceptQueue: initialProgressList,
+  turns: [],
+  pausedAt: null,
+  fallbackMode: false,
+  activeQuestion: null,
+  activeGrade: null,
+  replyText: '',
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -211,354 +213,302 @@ const playVoiceSynthesizer = (text: string) => {
 export default function InterviewSessionPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { plans, getPlanById } = usePlanStore()
-  const { startSession, pauseSession, resumeSession, endSession, activeSession } = useSessionStore()
+  const { lang } = useTranslation()
+  const { plans, getPlanById, concepts } = usePlanStore()
+  const { activeSession, pauseSession, resumeSession, endSession } = useSessionStore()
 
-  // Find current plan
+  // ─── Setup plan context ───
   const currentPlan = activeSession?.type === 'interview' && activeSession.planId
     ? getPlanById(activeSession.planId)
-    : plans.find(p => p.id === 'plan-1') || plans[0]
+    : plans.find(p => p.id === id) || plans[0]
 
-  // ─── State Machine ─────────────────────────────────────────────
-  const [state, dispatch] = useReducer(interviewReducer, {
-    status: 'idle',
-    currentConceptIndex: 1, // Start at index 1 for demo purposes
-    currentTurn: 0,
-    maxTurns: 3,
-    conceptQueue: initialProgressList,
-    turns: [],
-    pausedAt: null,
-    fallbackMode: false,
-    activeQuestion: null,
-    activeGrade: null,
-    replyText: ''
-  })
+  const planConcepts = currentPlan ? (concepts[currentPlan.id] || []) : []
 
-  // ─── Sync Session with Store ───
-  useEffect(() => {
-    if (!activeSession || activeSession.type !== 'interview' || activeSession.planId !== (currentPlan?.id || 'plan-1')) {
-      startSession({
-        id: id || 'mock-session-1',
-        type: 'interview',
-        planId: currentPlan?.id || 'plan-1',
-        planName: currentPlan?.name || 'JavaScript Advanced',
-        conceptId: initialProgressList[state.currentConceptIndex]?.id || '2',
-        conceptName: initialProgressList[state.currentConceptIndex]?.name || 'Closures',
-        startedAt: new Date().toISOString(),
-      })
-    }
-  }, [currentPlan, state.currentConceptIndex, id, activeSession, startSession])
-
-  // ─── Local UI States ─────────────────────────────────────────
-  const [voiceEnabled] = useState(true)
+  // ─── Component states ───
+  const [state, dispatch] = useReducer(interviewReducer, initialInterviewState)
   const [isRecording, setIsRecording] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [feedbackExpanded, setFeedbackExpanded] = useState(true)
-  const [flashcardFlipped, setFlashcardFlipped] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // ─── Effect: State Machine Orchestrator ────────────────────────
+  // Initialize Q&A Queue based on selected concepts
   useEffect(() => {
-    let active = true
-
-    const runEffects = async () => {
-      const activeConcept = state.conceptQueue[state.currentConceptIndex]
-
-      if (state.status === 'idle') {
-        dispatch({ type: 'START_SESSION' })
-      } 
-      
-      else if (state.status === 'loading_question') {
-        try {
-          const q = await mockApi.generateQuestion(activeConcept.id, state.currentTurn)
-          if (active) dispatch({ type: 'QUESTION_LOADED', payload: q })
-        } catch (err) {
-          console.error(err)
-          if (active) dispatch({ type: 'AI_FALLBACK' })
-        }
-      } 
-      
-      else if (state.status === 'grading') {
-        try {
-          const result = await mockApi.gradeAnswer(state.activeQuestion!.id, state.replyText)
-          if (active) dispatch({ type: 'GRADE_RECEIVED', payload: result })
-        } catch (err) {
-          console.error(err)
-          if (active) dispatch({ type: 'AI_FALLBACK' })
-        }
+    if (planConcepts.length > 0 && state.status === 'idle') {
+      let startIndex = 0
+      if (activeSession?.conceptId) {
+        const foundIndex = planConcepts.findIndex(c => c.id === activeSession.conceptId)
+        if (foundIndex !== -1) startIndex = foundIndex
       }
+
+      const queue: ConceptProgress[] = planConcepts.map((c, i) => {
+        let status: ConceptProgress['status'] = 'pending'
+        if (i < startIndex) status = 'done'
+        else if (i === startIndex) status = 'current'
+        return {
+          id: c.id,
+          name: c.name,
+          status,
+          score: c.mastery,
+        }
+      })
+
+      dispatch({ type: 'INITIALIZE_QUEUE', payload: { queue, startIndex } })
+      dispatch({ type: 'START_SESSION' })
     }
+  }, [planConcepts, activeSession, state.status])
 
-    runEffects()
-    return () => { active = false }
-  }, [state.status, state.currentConceptIndex, state.currentTurn, state.conceptQueue, state.activeQuestion, state.replyText])
-
-  // ─── Effect: TTS ──────────────────────────────────────────────
-  useEffect(() => {
-    if (state.status === 'awaiting_answer' && voiceEnabled && !state.fallbackMode && state.activeQuestion) {
-      const timer = setTimeout(() => {
-        playVoiceSynthesizer(state.activeQuestion!.text)
-      }, 600)
-      return () => clearTimeout(timer)
-    }
-  }, [state.status, voiceEnabled, state.fallbackMode, state.activeQuestion])
-
-  // Scroll to bottom
+  // Scroll to bottom on status changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [state.status, state.currentTurn])
+  }, [state.status, state.turns])
 
-  // ─── Handlers ────────────────────────────────────────────────
+  // ─── Load Next Question ───
+  const activeConcept = state.conceptQueue[state.currentConceptIndex]
+  useEffect(() => {
+    if (state.status === 'loading_question' && activeConcept) {
+      const timer = setTimeout(async () => {
+        try {
+          const q = await mockApi.generateQuestion(activeConcept.id, state.currentTurn, activeConcept.name)
+          dispatch({ type: 'QUESTION_LOADED', payload: q })
+        } catch (e) {
+          console.error(e)
+          dispatch({ type: 'AI_FALLBACK' })
+        }
+      }, 800)
+      return () => clearTimeout(timer)
+    }
+  }, [state.status, activeConcept])
+
+  // ─── Text-to-Speech Web Speech API ───
+  useEffect(() => {
+    if (state.status === 'awaiting_answer' && state.activeQuestion) {
+      const speakText = state.activeQuestion.text
+      const synth = window.speechSynthesis
+      if (synth && speakText) {
+        // Cancel active speaks
+        synth.cancel()
+        const utterance = new SpeechSynthesisUtterance(speakText)
+        utterance.lang = lang === 'vi' ? 'vi-VN' : 'en-US'
+        utterance.rate = 0.95
+        synth.speak(utterance)
+      }
+    }
+    return () => {
+      window.speechSynthesis?.cancel()
+    }
+  }, [state.status, state.activeQuestion, lang])
+
+  // ─── Submit & Grading ───
   const handleSubmitAnswer = () => {
-    if (state.replyText.trim() === '') return
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+    if (state.replyText.trim() === '' || !state.activeQuestion) return
     dispatch({ type: 'SUBMIT_ANSWER' })
+
+    setTimeout(async () => {
+      try {
+        const grade = await mockApi.gradeAnswer(state.activeQuestion!.text, state.replyText)
+        dispatch({ type: 'GRADE_RECEIVED', payload: grade })
+      } catch (e) {
+        dispatch({ type: 'AI_FALLBACK' })
+      }
+    }, 1200)
   }
 
-  const handleNextAction = async () => {
-    const isLastTurn = state.currentTurn >= state.maxTurns - 1
-    const isWrong = state.activeGrade?.verdict === 'wrong'
+  // ─── Next Action Q&A sequence ───
+  const handleNextAction = () => {
+    if (!state.activeGrade) return
 
-    if (isWrong) {
-      try {
-        const activeConcept = state.conceptQueue[state.currentConceptIndex]
-        const prereqs = await mockApi.runTraceback(activeConcept.id, null)
-        if (prereqs && prereqs.length > 0) {
-          dispatch({ type: 'TRACEBACK_TRIGGERED' })
-        } else {
-          dispatch({ type: 'NEXT_CONCEPT' })
-        }
-      } catch (err) {
-        console.error('Failed to run traceback check:', err)
-        dispatch({ type: 'NEXT_CONCEPT' })
-      }
-    } else if (isLastTurn) {
+    if (state.activeGrade.verdict === 'wrong') {
+      dispatch({ type: 'TRACEBACK_TRIGGERED' })
+    } else if (state.currentTurn >= state.maxTurns - 1) {
       dispatch({ type: 'NEXT_CONCEPT' })
     } else {
       dispatch({ type: 'NEXT_TURN' })
     }
   }
 
+  // Mock speech recording
   const handleStartRecording = () => {
     if (isRecording) {
       setIsRecording(false)
-      const mockReplies = [
-        'Theo tôi Closures hoạt động bằng cách giữ tham chiếu Heap đến Lexical Environment của hàm cha.',
-        'Ví dụ thực tế là hàm trả về một đối tượng chứa getter/setter thay đổi biến cục bộ.',
-        'Closures giữ tham chiếu đến DOM chưa được dọn dẹp gây rò rỉ bộ nhớ, ta phải gán biến closure về null.',
-      ]
-      dispatch({ type: 'SET_REPLY_TEXT', payload: mockReplies[state.currentTurn % 3] })
+      dispatch({ type: 'SET_REPLY_TEXT', payload: state.replyText + (lang === 'vi' ? ' Câu trả lời được nhập tự động bằng giọng nói giả lập.' : ' Simulation input answer via voice recognition.') })
     } else {
       setIsRecording(true)
+      setTimeout(() => {
+        setIsRecording(false)
+        dispatch({ type: 'SET_REPLY_TEXT', payload: state.replyText + (lang === 'vi' ? ' Câu trả lời được nhập tự động bằng giọng nói giả lập.' : ' Simulation input answer via voice recognition.') })
+      }, 3000)
     }
   }
 
-  const handleFlashcardGrade = (grade: 'correct' | 'partial' | 'wrong') => {
-    let score = 9.0
-    let verdict: 'deep' | 'shallow' | 'wrong' = 'deep'
-    if (grade === 'partial') {
-      score = 5.5; verdict = 'shallow'
-    } else if (grade === 'wrong') {
-      score = 2.0; verdict = 'wrong'
-    }
-
-    dispatch({ 
-      type: 'GRADE_RECEIVED', 
-      payload: { score, verdict, text: 'Tự đánh giá qua Flashcard.' }
-    })
-    setFlashcardFlipped(false)
+  if (!currentPlan || !activeConcept) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-zinc-950 text-white">
+        <div className="text-center space-y-4">
+          <RotateCw className="animate-spin mx-auto text-indigo-500" size={32} />
+          <p className="text-sm text-zinc-400">
+            {lang === 'vi' ? 'Đang khởi động cuộc đối thoại phỏng vấn...' : 'Initializing Q&A session...'}
+          </p>
+        </div>
+      </div>
+    )
   }
-
-  // Linear progress calculation
-  const totalSteps = state.conceptQueue.length * state.maxTurns
-  const completedSteps = (state.currentConceptIndex * state.maxTurns) + state.currentTurn + (state.status === 'showing_feedback' ? 1 : 0)
-  const progressPercent = Math.min(100, (completedSteps / totalSteps) * 100)
-
-  const activeConcept = state.conceptQueue[state.currentConceptIndex]
 
   return (
-    <div className="fixed inset-0 interview-theme-dark flex flex-col z-50">
+    <div className="flex flex-col h-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
       
-      {/* ─── FIXED HEADER ─── */}
-      <div className="h-16 border-b border-zinc-800 flex items-center justify-between px-6 bg-zinc-900 flex-shrink-0 z-30">
+      {/* ─── HEADER BAR ─── */}
+      <div className="h-16 border-b border-zinc-800 flex items-center justify-between px-6 bg-zinc-900 shrink-0 z-20">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-            Interview: JavaScript Advanced
-          </span>
+          <div className="w-8 h-8 rounded-lg bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-extrabold text-sm shrink-0">
+            AI
+          </div>
+          <div>
+            <h1 className="text-sm font-semibold text-zinc-100">{currentPlan.name}</h1>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-wider">
+              {lang === 'vi' ? 'Phiên phỏng vấn Recall AI' : 'Recall AI Interview Session'}
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-5">
-          {/* Concept Progress Indicators */}
-          <div className="hidden md:flex flex-col items-center">
-            <span className="text-xs font-bold text-zinc-100">
-              Khái niệm {state.currentConceptIndex + 1}/{state.conceptQueue.length}: {activeConcept.name}
-            </span>
-            <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">
-              Lượt {state.currentTurn + 1}/{state.maxTurns}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 bg-zinc-800/80 px-3 py-1.5 rounded-lg border border-zinc-700">
-            <span className="text-[10px] font-bold text-zinc-300 uppercase">Flashcard Mode</span>
-            <button
-              onClick={() => dispatch({ type: 'AI_FALLBACK' })}
-              className={`toggle-switch ${state.fallbackMode ? 'toggle-switch--active bg-red-500' : 'bg-zinc-600'}`}
-            >
-              <div className="toggle-switch__thumb" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (state.pausedAt) {
-                  dispatch({ type: 'RESUME' })
-                  resumeSession()
-                } else {
-                  dispatch({ type: 'PAUSE' })
-                  pauseSession()
-                }
-              }}
-              className="text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs font-bold"
-            >
-              <Pause size={14} className="mr-1.5" />
-              Tạm dừng
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowExitConfirm(true)}
-              className="text-red-400 hover:text-red-300 hover:bg-red-950/20 text-xs font-bold"
-            >
-              <X size={14} className="mr-1.5" />
-              Kết thúc
-            </Button>
-          </div>
+        <div className="flex items-center gap-3">
+          <Badge className="bg-zinc-800 text-zinc-300 hover:bg-zinc-800 border-zinc-700 text-[10px] uppercase font-bold py-1 px-2.5">
+            {lang === 'vi' ? `Lượt: ${state.currentTurn + 1}/${state.maxTurns}` : `Turn: ${state.currentTurn + 1}/${state.maxTurns}`}
+          </Badge>
+          <button
+            onClick={() => {
+              dispatch({ type: 'PAUSE' })
+              pauseSession()
+            }}
+            className="p-1.5 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition-colors"
+            aria-label="Tạm dừng"
+          >
+            <Pause size={18} />
+          </button>
+          <button
+            onClick={() => setShowExitConfirm(true)}
+            className="p-1.5 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition-colors"
+            aria-label="Thoát phiên"
+          >
+            <X size={18} />
+          </button>
         </div>
       </div>
 
-      <div className="linear-progress-bar flex-shrink-0 z-30">
-        <div className="linear-progress-bar__fill" style={{ width: `${progressPercent}%` }} />
-      </div>
-
-      {/* ─── CONTENT PANELS ─── */}
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* ─── MAIN CHAT TIMELINE (Left) ─── */}
-        <div className="flex-1 flex flex-col overflow-y-auto p-6 md:p-10 space-y-6">
-          
-          {state.fallbackMode && (
-            <div className="bg-red-950/30 border border-red-900/50 rounded-xl p-4 flex items-center gap-3 text-red-200 flex-shrink-0 animate-in slide-in-from-top-4 duration-300">
-              <AlertTriangle className="text-red-500 flex-shrink-0" size={20} />
-              <div>
-                <h4 className="font-bold text-xs">AI tạm thời không khả dụng — Chế độ Flashcard</h4>
-                <p className="text-[10px] text-red-400 leading-tight">
-                  Tự lật thẻ xem gợi ý đáp án và tự chấm điểm để duy trì tiến độ phiên kiểm tra.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="flex-1 space-y-6 max-w-3xl mx-auto w-full">
+        {/* ─── LEFT INTERVIEW DIALOGUE WINDOW (65%) ─── */}
+        <div className="flex-1 flex flex-col justify-between overflow-hidden bg-zinc-950 p-6">
+          <div className="flex-1 overflow-y-auto space-y-6 pr-2 max-w-3xl mx-auto w-full pb-8">
             
-            {/* AI Question Section */}
-            {state.status === 'loading_question' || state.status === 'idle' ? (
-              <div className="space-y-3 loading-question-pulse max-w-lg">
-                <div className="h-4 bg-zinc-800 rounded w-1/4" />
-                <div className="h-16 bg-zinc-800 rounded w-full" />
+            {/* Conversation turns history render */}
+            {state.turns.map((turn, i) => (
+              <div key={i} className="space-y-6">
+                {/* AI Question */}
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-indigo-900/40 text-indigo-400 border border-indigo-800/30 flex items-center justify-center shrink-0 text-xs font-bold font-mono">
+                    Q
+                  </div>
+                  <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-4 flex-1">
+                    <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-1">Recall AI</p>
+                    <p className="text-sm text-zinc-200 leading-relaxed font-sans">{turn.question.text}</p>
+                  </div>
+                </div>
+
+                {/* Student Answer */}
+                <div className="flex items-start gap-4 justify-end">
+                  <div className="bg-indigo-600/10 border border-indigo-500/25 rounded-2xl p-4 flex-1 max-w-xl text-right">
+                    <p className="text-xs text-indigo-400 font-bold uppercase tracking-wider mb-1">
+                      {lang === 'vi' ? 'Bạn' : 'You'}
+                    </p>
+                    <p className="text-sm text-zinc-200 leading-relaxed font-sans">{turn.answerText}</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 text-xs font-bold font-mono">
+                    A
+                  </div>
+                </div>
+
+                {/* AI Grade Verdict Feedback */}
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-emerald-900/40 text-emerald-400 border border-emerald-800/30 flex items-center justify-center shrink-0 text-xs font-bold font-mono">
+                    ✓
+                  </div>
+                  <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-5 flex-1 space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-2 flex-wrap gap-2">
+                      <span className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest">
+                        {lang === 'vi' ? 'Đánh giá câu trả lời' : 'Verdict Assessment'}
+                      </span>
+                      <Badge className={turn.grade.verdict === 'deep' ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/20' : turn.grade.verdict === 'shallow' ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/20' : 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/20'}>
+                        {turn.grade.verdict === 'deep' ? (lang === 'vi' ? 'Chính xác' : 'Correct') : turn.grade.verdict === 'shallow' ? (lang === 'vi' ? 'Chưa đủ' : 'Partial') : (lang === 'vi' ? 'Sai/Thiếu' : 'Incorrect')}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-zinc-300 leading-relaxed font-sans">{turn.grade.text}</p>
+                  </div>
+                </div>
               </div>
-            ) : state.activeQuestion ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500 text-xs font-semibold">🤖 Recall AI</span>
-                  <Badge className="bg-zinc-800 text-zinc-400 font-bold border-0 text-[9px] uppercase tracking-wider">
-                    {state.activeQuestion.type}
+            ))}
+
+            {/* Step 1: Loading next question */}
+            {state.status === 'loading_question' && (
+              <div className="flex items-start gap-4 animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center shrink-0 text-xs">💬</div>
+                <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl p-4 flex-1">
+                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-1">
+                    {lang === 'vi' ? 'Đang soạn câu hỏi...' : 'Preparing question...'}
+                  </p>
+                  <div className="h-4 bg-zinc-800 rounded w-3/4 mt-2"></div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Awaiting input / Active Question */}
+            {state.status === 'awaiting_answer' && state.activeQuestion && (
+              <div className="flex items-start gap-4 animate-in fade-in duration-300">
+                <div className="w-8 h-8 rounded-full bg-indigo-950/80 text-indigo-400 border border-indigo-800/40 flex items-center justify-center shrink-0 text-xs font-bold font-mono">Q</div>
+                <div className="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-5 flex-1 shadow-md">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                      {lang === 'vi' ? 'Câu hỏi phỏng vấn' : 'Interview Question'}
+                    </span>
+                    <Badge variant="outline" className="border-indigo-500/30 text-indigo-400 text-[9px] uppercase font-bold py-0.5 px-2">
+                      {activeConcept.name}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-semibold text-zinc-100 leading-relaxed font-sans">{state.activeQuestion.text}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Grading process */}
+            {state.status === 'grading' && (
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center shrink-0 text-xs">🤖</div>
+                <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-4 flex-1">
+                  <p className="text-xs text-indigo-400 font-bold uppercase tracking-wider mb-1 animate-pulse">
+                    {lang === 'vi' ? 'Recall AI đang chấm bài...' : 'Recall AI is grading...'}
+                  </p>
+                  <div className="h-4 bg-zinc-800 rounded w-1/2 mt-2 animate-pulse"></div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Show Feedback & Verdict */}
+            {state.status === 'showing_feedback' && state.activeGrade && (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4 shadow-lg max-w-xl animate-in slide-in-from-bottom-3 duration-300">
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                  <span className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest">
+                    {lang === 'vi' ? 'Nhận xét chi tiết từ AI' : 'AI Feedback & Assessment'}
+                  </span>
+                  <Badge className={state.activeGrade.verdict === 'deep' ? 'bg-emerald-500/15 text-emerald-400 border-0 hover:bg-emerald-500/20' : state.activeGrade.verdict === 'shallow' ? 'bg-amber-500/15 text-amber-400 border-0 hover:bg-amber-500/20' : 'bg-rose-500/15 text-rose-400 border-0 hover:bg-rose-500/20'}>
+                    {state.activeGrade.verdict === 'deep' ? (lang === 'vi' ? 'Chính xác' : 'Correct') : state.activeGrade.verdict === 'shallow' ? (lang === 'vi' ? 'Chưa đủ' : 'Partial') : (lang === 'vi' ? 'Sai/Thiếu' : 'Incorrect')}
                   </Badge>
                 </div>
-                
-                {state.fallbackMode ? (
-                  <div className={`flashcard-card ${flashcardFlipped ? 'flashcard-card--flipped' : ''}`}>
-                    <div className="flashcard-card__inner">
-                      <div className="flashcard-card__front">
-                        <p className="text-sm font-semibold leading-relaxed mb-4">{state.activeQuestion.text}</p>
-                        <Button size="sm" onClick={() => setFlashcardFlipped(true)}>
-                          <RotateCw size={13} className="mr-1.5" /> Lật thẻ xem gợi ý
-                        </Button>
-                      </div>
-                      <div className="flashcard-card__back">
-                        <p className="text-[11px] uppercase tracking-wider text-indigo-400 font-bold mb-2">Gợi ý đáp án phỏng vấn</p>
-                        <p className="text-xs text-zinc-300 mb-6 leading-relaxed">Ví dụ: Cần giải thích rõ cơ chế lưu trữ Lexical Environment trong bộ nhớ heap...</p>
-                        <div className="flex gap-2">
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold" onClick={() => handleFlashcardGrade('correct')}>✅ Đúng</Button>
-                          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold" onClick={() => handleFlashcardGrade('partial')}>⚠️ Một phần</Button>
-                          <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold" onClick={() => handleFlashcardGrade('wrong')}>❌ Sai</Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="chat-bubble-ai">{state.activeQuestion.text}</div>
-                    <div className="flex gap-2 items-center">
-                      <Button variant="ghost" size="sm" onClick={() => playVoiceSynthesizer(state.activeQuestion!.text)} className="text-zinc-500 hover:text-zinc-300 text-[10px] h-7 px-2 font-semibold">
-                        <Volume2 size={12} className="mr-1" /> Nghe câu hỏi
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : null}
-
-            {/* User reply bubble */}
-            {(state.status === 'grading' || state.status === 'showing_feedback' || state.status === 'complete' || state.status === 'traceback') && !state.fallbackMode && state.replyText && (
-              <div className="space-y-1">
-                <div className="text-right">
-                  <span className="text-zinc-500 text-xs font-semibold">Bạn</span>
-                </div>
-                <div className="chat-bubble-user max-w-xl">
-                  {state.replyText}
-                </div>
-              </div>
-            )}
-
-            {/* AI Grading Loader */}
-            {state.status === 'grading' && (
-              <div className="flex items-center gap-2 text-xs text-indigo-400 animate-pulse pt-4">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]" />
-                <span>AI đang chấm điểm và phân tích câu trả lời...</span>
-              </div>
-            )}
-
-            {/* FEEDBACK BLOCK */}
-            {state.status === 'showing_feedback' && state.activeGrade && (
-              <div className="border border-zinc-800 bg-zinc-900 rounded-xl p-5 space-y-4 animate-in slide-in-from-bottom-4 duration-300">
-                <div className="flex items-center justify-between border-b border-zinc-800 pb-3 flex-wrap gap-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-zinc-400">Kết quả đánh giá:</span>
-                    <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${state.activeGrade.score >= 7.0 ? 'bg-emerald-500/20 text-emerald-400' : state.activeGrade.score >= 4.0 ? 'bg-amber-500/20 text-amber-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                      {state.activeGrade.score.toFixed(1)}/10
-                    </span>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${state.activeGrade.verdict === 'deep' ? 'bg-emerald-600/25 text-emerald-400' : state.activeGrade.verdict === 'shallow' ? 'bg-amber-600/25 text-amber-400' : 'bg-rose-600/25 text-rose-400'}`}>
-                      {state.activeGrade.verdict}
-                    </span>
-                  </div>
-                  <button onClick={() => setFeedbackExpanded(prev => !prev)} className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center">
-                    {feedbackExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  </button>
-                </div>
-                {feedbackExpanded && (
-                  <p className="text-xs text-zinc-300 leading-relaxed">{state.activeGrade.text}</p>
+                {state.activeGrade.text && (
+                  <p className="text-xs text-zinc-300 leading-relaxed font-sans">{state.activeGrade.text}</p>
                 )}
                 <div className="flex justify-end pt-2">
                   <Button onClick={handleNextAction} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
-                    {state.activeGrade.verdict === 'wrong' ? 'Ôn lại gốc' : state.currentTurn >= state.maxTurns - 1 ? 'Khái niệm tiếp theo' : 'Câu tiếp theo'}
+                    {state.activeGrade.verdict === 'wrong' ? (lang === 'vi' ? 'Ôn lại gốc' : 'Start Traceback') : state.currentTurn >= state.maxTurns - 1 ? (lang === 'vi' ? 'Khái niệm tiếp theo' : 'Next Concept') : (lang === 'vi' ? 'Câu tiếp theo' : 'Next Question')}
                     <ArrowRight size={14} />
                   </Button>
                 </div>
@@ -572,20 +522,24 @@ export default function InterviewSessionPage() {
                   <AlertTriangle size={36} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-foreground">Phát hiện hổng kiến thức nền tảng!</h3>
-                  <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-                    Có vẻ bạn chưa vững khái niệm nền tảng. Recall AI sẽ chuyển bạn sang chế độ Traceback để lấp lỗ hổng này trước khi tiếp tục.
+                  <h3 className="text-lg font-bold text-foreground">
+                    {lang === 'vi' ? 'Phát hiện hổng kiến thức nền tảng!' : 'Found Prerequisite Gap!'}
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                    {lang === 'vi'
+                      ? 'Có vẻ bạn chưa vững khái niệm nền tảng. Recall AI sẽ chuyển bạn sang chế độ Traceback để lấp lỗ hổng này trước khi tiếp tục.'
+                      : 'It seems you have a gap in prerequisite concepts. Recall AI will redirect you to Traceback mode to study it before continuing.'}
                   </p>
                 </div>
                 <div className="flex justify-center gap-3">
                   <Button onClick={() => dispatch({ type: 'NEXT_CONCEPT' })} className="bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs py-2.5 px-6 rounded-xl">
-                    Bỏ qua, học tiếp
+                    {lang === 'vi' ? 'Bỏ qua, học tiếp' : 'Skip, continue'}
                   </Button>
                   <Button onClick={() => {
                     endSession()
-                    navigate('/focus/5')
+                    navigate(`/focus/${currentPlan.id}?concept=8`)
                   }} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs py-2.5 px-6 rounded-xl">
-                    Bắt đầu Traceback
+                    {lang === 'vi' ? 'Bắt đầu Traceback' : 'Start Traceback'}
                   </Button>
                 </div>
               </div>
@@ -598,14 +552,19 @@ export default function InterviewSessionPage() {
                   <Award size={36} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-foreground">Hoàn thành phiên kiểm tra!</h3>
+                  <h3 className="text-lg font-bold text-foreground">
+                    {lang === 'vi' ? 'Hoàn thành phiên kiểm tra!' : 'Interview Completed!'}
+                  </h3>
                   <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-                    Chúc mừng! Bạn đã hoàn thành bài kiểm tra.
+                    {lang === 'vi' ? 'Chúc mừng! Bạn đã hoàn thành bài kiểm tra.' : 'Congratulations! You have successfully completed the mock interview.'}
                   </p>
                 </div>
                 <div className="flex justify-center gap-3">
-                  <Button onClick={() => navigate(`/interview/${id}/result`)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs py-2.5 px-6 rounded-xl">
-                    Xem báo cáo kết quả
+                  <Button 
+                    onClick={() => navigate(`/interview/${currentPlan.id}/result`, { state: { turns: state.turns } })} 
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs py-2.5 px-6 rounded-xl"
+                  >
+                    {lang === 'vi' ? 'Xem báo cáo kết quả' : 'View Results Report'}
                   </Button>
                 </div>
               </div>
@@ -616,13 +575,13 @@ export default function InterviewSessionPage() {
 
           {/* ─── BOTTOM STUDENT INPUT ZONE ─── */}
           {state.status === 'awaiting_answer' && !state.fallbackMode && (
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 max-w-3xl mx-auto w-full flex-shrink-0 space-y-4">
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 max-w-3xl mx-auto w-full shrink-0 space-y-4">
               <textarea
                 rows={4}
                 value={state.replyText}
                 onChange={(e) => dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value })}
-                placeholder="Nhập câu trả lời của bạn..."
-                className="w-full bg-transparent border-0 text-sm focus:outline-none focus:ring-0 text-zinc-100 placeholder-zinc-500 resize-none"
+                placeholder={lang === 'vi' ? 'Nhập câu trả lời của bạn...' : 'Enter your answer here...'}
+                className="w-full bg-transparent border-0 text-sm focus:outline-none focus:ring-0 text-zinc-100 placeholder:opacity-50 resize-none font-sans"
               />
               <div className="flex items-center justify-between border-t border-zinc-800/80 pt-3">
                 <button
@@ -636,7 +595,7 @@ export default function InterviewSessionPage() {
                   disabled={state.replyText.trim() === ''}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-5 py-2 rounded-xl shadow-sm"
                 >
-                  Gửi câu trả lời →
+                  {lang === 'vi' ? 'Gửi câu trả lời →' : 'Submit Answer →'}
                 </Button>
               </div>
             </div>
@@ -645,7 +604,7 @@ export default function InterviewSessionPage() {
         </div>
 
         {/* ─── SIDEBAR PROGRESS TRACKER (Right) ─── */}
-        <div className={`interview-sidebar border-l border-zinc-800 bg-zinc-900/40 relative flex-shrink-0 flex flex-col ${sidebarOpen ? 'w-[280px]' : 'w-0'}`}>
+        <div className={`interview-sidebar border-l border-zinc-800 bg-zinc-900/40 relative shrink-0 flex flex-col ${sidebarOpen ? 'w-70' : 'w-0'}`}>
           <button
             onClick={() => setSidebarOpen(prev => !prev)}
             className="absolute top-1/2 -left-3 transform -translate-y-1/2 w-6 h-12 bg-zinc-800 border border-zinc-700 rounded-l-md flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
@@ -655,7 +614,9 @@ export default function InterviewSessionPage() {
 
           {sidebarOpen && (
             <div className="p-5 flex flex-col h-full overflow-y-auto">
-              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Tiến độ phiên</h3>
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">
+                {lang === 'vi' ? 'Tiến độ phiên' : 'Session Progress'}
+              </h3>
               <div className="space-y-3">
                 {state.conceptQueue.map((c, i) => {
                   const isCurrent = i === state.currentConceptIndex
@@ -671,10 +632,13 @@ export default function InterviewSessionPage() {
                         <h4 className="font-semibold text-xs text-zinc-100">{c.name}</h4>
                         <div className="flex items-center gap-1.5 mt-1">
                           <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">
-                            {c.status === 'done' ? 'Hoàn thành' : c.status === 'current' ? 'Đang học' : c.status === 'traceback' ? 'Traceback' : 'Chưa học'}
+                            {c.status === 'done' ? (lang === 'vi' ? 'Hoàn thành' : 'Completed') 
+                              : c.status === 'current' ? (lang === 'vi' ? 'Đang học' : 'Reviewing') 
+                              : c.status === 'traceback' ? 'Traceback' 
+                              : (lang === 'vi' ? 'Chưa học' : 'Pending')}
                           </span>
                           {c.score !== null && (
-                            <span className="text-[9px] font-extrabold text-emerald-400">• {c.score}/10</span>
+                            <span className="text-[9px] font-extrabold text-emerald-400">• {(c.score * 10).toFixed(1)}/10</span>
                           )}
                         </div>
                       </div>
@@ -693,14 +657,18 @@ export default function InterviewSessionPage() {
           <div className="bg-zinc-900 rounded-2xl p-8 max-w-sm w-full text-center border border-zinc-800 shadow-2xl space-y-5">
             <div className="w-16 h-16 bg-zinc-800 text-indigo-400 rounded-full flex items-center justify-center mx-auto text-3xl">⏸</div>
             <div>
-              <h2 className="text-lg font-bold text-zinc-100">Đã tạm dừng Interview</h2>
-              <p className="text-xs text-zinc-400 mt-1">Tạm thời đóng băng tiến độ trao đổi phỏng vấn.</p>
+              <h2 className="text-lg font-bold text-zinc-100">
+                {lang === 'vi' ? 'Đã tạm dừng Interview' : 'Interview Paused'}
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1">
+                {lang === 'vi' ? 'Tạm thời đóng băng tiến độ trao đổi phỏng vấn.' : 'Temporarily freezing interview exchange progress.'}
+              </p>
             </div>
             <Button onClick={() => {
               dispatch({ type: 'RESUME' })
               resumeSession()
             }} className="w-full text-white bg-indigo-600 hover:bg-indigo-700 font-semibold text-xs py-2">
-              Tiếp tục
+              {lang === 'vi' ? 'Tiếp tục' : 'Resume'}
             </Button>
           </div>
         </div>
@@ -709,18 +677,26 @@ export default function InterviewSessionPage() {
       <Dialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
         <DialogContent className="max-w-sm bg-zinc-900 border-zinc-800 text-zinc-100">
           <DialogHeader>
-            <DialogTitle className="text-zinc-100">Xác nhận thoát?</DialogTitle>
-            <DialogDescription className="text-zinc-400 text-xs">
-              Mọi kết quả tự học trong phiên này sẽ được lưu lại. Bạn có chắc chắn muốn dừng phiên phỏng vấn?
+            <DialogTitle className="text-zinc-100">
+              {lang === 'vi' ? 'Xác nhận thoát?' : 'Confirm Exit?'}
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs leading-relaxed">
+              {lang === 'vi'
+                ? 'Mọi kết quả tự học trong phiên này sẽ được lưu lại. Bạn có chắc chắn muốn dừng phiên phỏng vấn?'
+                : 'All self-study results in this session will be saved. Are you sure you want to stop the interview session?'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 justify-end mt-4">
-            <Button variant="outline" className="border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white" onClick={() => setShowExitConfirm(false)}>Hủy</Button>
+            <Button variant="outline" className="border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white" onClick={() => setShowExitConfirm(false)}>
+              {lang === 'vi' ? 'Hủy' : 'Cancel'}
+            </Button>
             <Button className="bg-rose-600 text-white" onClick={() => {
               setShowExitConfirm(false)
               endSession()
-              navigate(`/plans/${currentPlan?.id || 'plan-1'}`)
-            }}>Thoát Interview</Button>
+              navigate(`/plans/${currentPlan.id}`)
+            }}>
+              {lang === 'vi' ? 'Thoát Interview' : 'Exit Interview'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

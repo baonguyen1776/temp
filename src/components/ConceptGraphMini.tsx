@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import ReactFlow, {
   Node,
   Edge,
@@ -11,7 +11,8 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { getMasteryClass } from '@/types'
-import { mockConcepts, nodePositions } from '@/components/ConceptGraphFull'
+import { nodePositions } from '@/components/ConceptGraphFull'
+import { usePlanStore } from '@/stores/planStore'
 import '@/styles/concept-graph.css'
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -40,31 +41,19 @@ function ConceptNodeMini({ data }: NodeProps) {
 
 const nodeTypes = { concept: ConceptNodeMini }
 
-// ─── Edge Builder ───────────────────────────────────────────────
-function buildEdges(): Edge[] {
-  const edges: Edge[] = []
-  for (const concept of mockConcepts) {
-    for (const prereqId of concept.prerequisites) {
-      edges.push({
-        id: `e${prereqId}-${concept.id}`,
-        source: prereqId,
-        target: concept.id,
-        animated: false,
-        style: { stroke: '#D1D5DB', strokeWidth: 1.5 },
-      })
-    }
-  }
-  return edges
-}
-
 // ═══════════════════════════════════════════════════════════════
 // ConceptGraphMini (DB-01 Mini / Dashboard embed)
 // ═══════════════════════════════════════════════════════════════
 interface ConceptGraphMiniProps {
   height?: number
+  planId?: string
 }
 
-export default function ConceptGraphMini({ height = 280 }: ConceptGraphMiniProps) {
+export default function ConceptGraphMini({ height = 280, planId }: ConceptGraphMiniProps) {
+  const { concepts, activePlan } = usePlanStore()
+  const currentPlanId = planId || activePlan?.id || 'plan-1'
+  const activeConcepts = concepts[currentPlanId] || []
+
   // ─── Tooltip State ──────────────────────────────────────────
   const [tooltip, setTooltip] = useState<{
     x: number
@@ -74,19 +63,37 @@ export default function ConceptGraphMini({ height = 280 }: ConceptGraphMiniProps
   } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const initialNodes: Node[] = mockConcepts.map(concept => ({
-    id: concept.id,
-    type: 'concept',
-    data: {
-      label: concept.name,
-      mastery: concept.mastery,
-      isRemediating: concept.isRemediating,
-    },
-    position: nodePositions[concept.id] || { x: 0, y: 0 },
-  }))
+  const [nodes, setNodes] = useNodesState([])
+  const [edges, setEdges] = useEdgesState([])
 
-  const [nodes] = useNodesState(initialNodes)
-  const [edges] = useEdgesState(buildEdges())
+  useEffect(() => {
+    const formattedNodes: Node[] = activeConcepts.map(concept => ({
+      id: concept.id,
+      type: 'concept',
+      data: {
+        label: concept.name,
+        mastery: concept.mastery,
+        isRemediating: concept.isRemediating,
+      },
+      position: nodePositions[concept.id] || { x: Math.random() * 200, y: Math.random() * 200 },
+    }))
+
+    const formattedEdges: Edge[] = []
+    for (const concept of activeConcepts) {
+      for (const prereqId of concept.prerequisites) {
+        formattedEdges.push({
+          id: `e${prereqId}-${concept.id}`,
+          source: prereqId,
+          target: concept.id,
+          animated: false,
+          style: { stroke: '#D1D5DB', strokeWidth: 1.5 },
+        })
+      }
+    }
+
+    setNodes(formattedNodes)
+    setEdges(formattedEdges)
+  }, [activeConcepts, setNodes, setEdges])
 
   const handleNodeMouseEnter = useCallback((event: React.MouseEvent, node: Node) => {
     if (!containerRef.current) return

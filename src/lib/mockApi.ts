@@ -27,43 +27,28 @@ export interface SessionSummary {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-const mockQuestions: Record<string, Question[]> = {
-  'why': [
-    {
-      id: 'q1',
-      conceptId: '1',
-      type: 'why',
-      text: 'Tại sao Closures trong JavaScript lại có thể truy cập và ghi nhớ được các biến ở phạm vi cha (lexical environment) ngay cả khi hàm cha đã thực thi xong?'
-    }
-  ],
-  'application': [
-    {
-      id: 'q2',
-      conceptId: '1',
-      type: 'application',
-      text: 'Hãy viết hoặc mô tả cấu trúc một ví dụ thực tế sử dụng Closures để tạo ra một đối tượng có thuộc tính "private variable" mà bên ngoài không thể thay đổi trực tiếp được?'
-    }
-  ],
-  'recall': [
-    {
-      id: 'q3',
-      conceptId: '1',
-      type: 'recall',
-      text: 'Closures có thể dẫn tới vấn đề rò rỉ bộ nhớ (memory leaks) trong trình duyệt như thế nào? Làm cách nào để giải phóng hoặc phòng tránh điều này?'
-    }
-  ]
-}
-
 export const mockApi = {
-  async generateQuestion(_conceptId: string, turn: number): Promise<Question> {
+  async generateQuestion(_conceptId: string, turn: number, conceptName?: string): Promise<Question> {
     await delay(1000)
-    
-    // Simulate failure rate for AE-05 (AI Fallback) testing
-    // if (Math.random() < 0.1) throw new Error('AI Service Unavailable')
-
+    const name = conceptName || 'khái niệm này'
     const types: Array<'why' | 'application' | 'recall'> = ['why', 'application', 'recall']
     const type = types[turn % 3]
-    return mockQuestions[type][0]
+    
+    let text = ''
+    if (type === 'why') {
+      text = `Tại sao ${name} lại quan trọng trong lập trình và cơ chế hoạt động cốt lõi của nó là gì?`
+    } else if (type === 'application') {
+      text = `Hãy viết hoặc mô tả một ví dụ thực tế sử dụng ${name} để giải quyết bài toán thực tế?`
+    } else {
+      text = `${name} có thể dẫn tới những vấn đề hoặc lỗi phổ biến nào? Làm cách nào để tối ưu hóa hoặc phòng tránh điều này?`
+    }
+
+    return {
+      id: `q-${_conceptId}-${turn}-${Date.now()}`,
+      conceptId: _conceptId,
+      type,
+      text
+    }
   },
 
   async gradeAnswer(_questionId: string, answer: string): Promise<GradeResult> {
@@ -72,19 +57,19 @@ export const mockApi = {
     // A simple heuristic for the mock
     if (answer.length < 10) {
       return {
-        score: 2.0,
+        score: 0.2,
         verdict: 'wrong',
         text: 'Rất tiếc, câu trả lời chưa chính xác. Cần giải thích rõ cơ chế bên dưới.'
       }
     } else if (answer.length < 40) {
       return {
-        score: 5.5,
+        score: 0.55,
         verdict: 'shallow',
         text: 'Câu trả lời ở mức độ trung bình. Bạn đã nêu được ý chính nhưng chưa phân tích chi tiết.'
       }
     } else {
       return {
-        score: 9.0,
+        score: 0.9,
         verdict: 'deep',
         text: 'Câu trả lời rất chính xác và sâu sắc! Bạn đã giải thích rõ cơ chế chi tiết.'
       }

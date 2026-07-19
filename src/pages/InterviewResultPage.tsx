@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   ResponsiveContainer,
   BarChart,
@@ -32,6 +32,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import '@/styles/interview-result.css'
+import { TurnRecord } from '@/lib/mockApi'
+import { useTranslation } from '@/stores/languageStore'
 
 // ─── Interfaces ────────────────────────────────────────────────
 interface ConceptResult {
@@ -131,54 +133,130 @@ const initialTracebacks: TracebackNode[] = [
   },
 ]
 
-// ─── Custom Tooltip Component for Recharts ──────────────────────
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data: ConceptResult = payload[0].payload
-    
-    // Count verdicts
-    const deepCount = data.turns.filter(t => t.verdict === 'deep').length
-    const shallowCount = data.turns.filter(t => t.verdict === 'shallow').length
-    const wrongCount = data.turns.filter(t => t.verdict === 'wrong').length
-
-    return (
-      <div className="chart-custom-tooltip">
-        <p className="chart-custom-tooltip__title">{data.name}</p>
-        <p className="chart-custom-tooltip__score">
-          Điểm trung bình: {data.score.toFixed(1)}/10
-        </p>
-        <div className="space-y-1 mt-1 border-t border-zinc-100 pt-2">
-          <div className="chart-custom-tooltip__verdict">
-            <div className="chart-custom-tooltip__dot bg-emerald-500" />
-            <span>Deep (Chuyên sâu): {deepCount} lượt</span>
-          </div>
-          <div className="chart-custom-tooltip__verdict">
-            <div className="chart-custom-tooltip__dot bg-amber-500" />
-            <span>Shallow (Hời hợt): {shallowCount} lượt</span>
-          </div>
-          <div className="chart-custom-tooltip__verdict">
-            <div className="chart-custom-tooltip__dot bg-rose-500" />
-            <span>Wrong (Sai lệch): {wrongCount} lượt</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
-  return null
-}
-
 // ═══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
 export default function InterviewResultPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { lang } = useTranslation()
+
+  const turns = location.state?.turns as TurnRecord[] || []
+
+  // ─── Custom Tooltip Component for Recharts ──────────────────────
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data: ConceptResult = payload[0].payload
+      
+      // Count verdicts
+      const deepCount = data.turns.filter(t => t.verdict === 'deep').length
+      const shallowCount = data.turns.filter(t => t.verdict === 'shallow').length
+      const wrongCount = data.turns.filter(t => t.verdict === 'wrong').length
+
+      return (
+        <div className="chart-custom-tooltip">
+          <p className="chart-custom-tooltip__title">{data.name}</p>
+          <p className="chart-custom-tooltip__score">
+            {lang === 'vi' ? `Điểm trung bình: ${data.score.toFixed(1)}/10` : `Average Score: ${data.score.toFixed(1)}/10`}
+          </p>
+          <div className="space-y-1 mt-1 border-t border-zinc-100 pt-2">
+            <div className="chart-custom-tooltip__verdict">
+              <div className="chart-custom-tooltip__dot bg-emerald-500" />
+              <span>{lang === 'vi' ? `Deep (Chuyên sâu): ${deepCount} lượt` : `Deep (In-depth): ${deepCount} turns`}</span>
+            </div>
+            <div className="chart-custom-tooltip__verdict">
+              <div className="chart-custom-tooltip__dot bg-amber-500" />
+              <span>{lang === 'vi' ? `Shallow (Hời hợt): ${shallowCount} lượt` : `Shallow (Surface): ${shallowCount} turns`}</span>
+            </div>
+            <div className="chart-custom-tooltip__verdict">
+              <div className="chart-custom-tooltip__dot bg-rose-500" />
+              <span>{lang === 'vi' ? `Wrong (Sai lệch): ${wrongCount} lượt` : `Wrong (Incorrect): ${wrongCount} turns`}</span>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    return null
+  }
+
+  // Group real turns dynamically if available
+  const conceptResults: ConceptResult[] = useMemo(() => {
+    if (!turns || turns.length === 0) {
+      return mockConceptResults
+    }
+
+    const groups: Record<string, { name: string; turns: TurnRecord[] }> = {}
+    
+    // Hardcoded concept name lookup for demo purposes
+    const conceptNames: Record<string, string> = {
+      '1': 'Async/Await',
+      '2': 'Promises',
+      '3': 'Callbacks',
+      '4': 'Event Loop',
+      '5': 'Scope',
+      '6': 'Closures',
+      '7': 'Functions',
+      '8': 'Destructuring',
+    }
+
+    turns.forEach((t) => {
+      const cId = t.question.conceptId
+      if (!groups[cId]) {
+        groups[cId] = {
+          name: conceptNames[cId] || 'Khái niệm khác',
+          turns: [],
+        }
+      }
+      groups[cId].turns.push(t)
+    })
+
+    return Object.keys(groups).map((cId) => {
+      const group = groups[cId]
+      
+      // Calculate weighted score
+      const weights = [0.2, 0.3, 0.5]
+      let totalWeight = 0
+      let weightedSum = 0
+      group.turns.forEach((t, i) => {
+        const w = weights[i] || 0.3
+        weightedSum += t.grade.score * w
+        totalWeight += w
+      })
+      const finalScore = totalWeight > 0 ? weightedSum / totalWeight : 0
+
+      // Map to 10 points scale
+      const displayScore = finalScore * 10
+      
+      let verdict: 'deep' | 'shallow' | 'wrong' = 'deep'
+      if (finalScore < 0.4) verdict = 'wrong'
+      else if (finalScore < 0.7) verdict = 'shallow'
+
+      return {
+        id: cId,
+        name: group.name,
+        score: Number(displayScore.toFixed(1)),
+        verdict,
+        turns: group.turns.map((t, idx) => ({
+          turn: idx + 1,
+          score: Number((t.grade.score * 10).toFixed(1)),
+          verdict: t.grade.verdict,
+          question: t.question.text,
+        })),
+      }
+    })
+  }, [turns])
 
   // ─── States ──────────────────────────────────────────────────
   const [aiSummaryOpen, setAiSummaryOpen] = useState(true)
-  const [tracebacks, setTracebacks] = useState<TracebackNode[]>(initialTracebacks)
+  const [tracebacks, setTracebacks] = useState<TracebackNode[]>(
+    turns && turns.length > 0
+      ? initialTracebacks.filter(tb => conceptResults.some(cr => cr.id === tb.conceptName || cr.score < 6.0))
+      : initialTracebacks
+  )
   const [expandedConcept, setExpandedConcept] = useState<string | null>(null)
+  const [disputedConcepts, setDisputedConcepts] = useState<Record<string, boolean>>({})
   
-  // Dispute Modal States (AE-10)
+  // Dispute Modal States
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [disputeConceptName, setDisputeConceptName] = useState('')
   const [disputeReason, setDisputeReason] = useState('score-mismatch')
@@ -197,8 +275,11 @@ export default function InterviewResultPage() {
   }
 
   const handleSubmitDispute = () => {
-    // Mock submit and close
+    setDisputedConcepts(prev => ({ ...prev, [disputeConceptName]: true }))
     setDisputeOpen(false)
+    alert(lang === 'vi' 
+      ? `Đã gửi khiếu nại cho khái niệm "${disputeConceptName}". Trạng thái đã được cập nhật thành "Đang khiếu nại".`
+      : `Dispute submitted for concept "${disputeConceptName}". Status updated to "Dispute Pending".`)
   }
 
   const getScoreColor = (score: number): string => {
@@ -214,14 +295,14 @@ export default function InterviewResultPage() {
   }
 
   const getMasteryLabel = (score: number): string => {
-    if (score >= 7.0) return 'Vững'
-    if (score >= 4.0) return 'Yếu' // or Trung bình based on requirements
-    return 'Cần ôn thêm'
+    if (score >= 7.0) return lang === 'vi' ? 'Vững' : 'Strong'
+    if (score >= 4.0) return lang === 'vi' ? 'Trung bình' : 'Medium'
+    return lang === 'vi' ? 'Yếu' : 'Weak'
   }
 
   // Summary math
-  const strongConcepts = mockConceptResults.filter(c => c.score >= 7.0).length
-  const weakConcepts = mockConceptResults.filter(c => c.score < 7.0).length
+  const strongConcepts = conceptResults.filter(c => c.score >= 7.0).length
+  const weakConcepts = conceptResults.filter(c => c.score < 7.0).length
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 py-6 px-4">
@@ -231,10 +312,10 @@ export default function InterviewResultPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
             <Award className="text-indigo-600" size={26} />
-            Kết quả phiên Interview
+            {lang === 'vi' ? 'Kết quả phiên Interview' : 'AI Interview Results'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Ngày thực hiện: <span className="font-semibold text-foreground">18/07/2026</span> • Thời gian: <span className="font-semibold text-foreground">24 phút</span>
+            {lang === 'vi' ? 'Ngày thực hiện: ' : 'Date: '}<span className="font-semibold text-foreground">18/07/2026</span> • {lang === 'vi' ? 'Thời gian: ' : 'Duration: '}<span className="font-semibold text-foreground">24 {lang === 'vi' ? 'phút' : 'mins'}</span>
           </p>
         </div>
       </div>
@@ -242,14 +323,14 @@ export default function InterviewResultPage() {
       {/* ─── SECTION 1: SCORE OVERVIEW (Recharts Chart) ─── */}
       <div className="bg-card border border-border rounded-xl p-5 space-y-4 shadow-sm">
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          Biểu đồ phân tích độ vững kiến thức
+          {lang === 'vi' ? 'Biểu đồ phân tích độ vững kiến thức' : 'Mastery Level Distribution Graph'}
         </h2>
 
         {/* Horizontal Bar Chart */}
-        <div className="h-[250px] w-full">
+        <div className="h-62.5 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={mockConceptResults}
+              data={conceptResults}
               layout="vertical"
               margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
             >
@@ -264,7 +345,7 @@ export default function InterviewResultPage() {
               />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.02)' }} />
               <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={14}>
-                {mockConceptResults.map((entry, index) => (
+                {conceptResults.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={getScoreColor(entry.score)} />
                 ))}
               </Bar>
@@ -275,12 +356,12 @@ export default function InterviewResultPage() {
         {/* Summary Row */}
         <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-center">
           <div className="bg-emerald-50/50 rounded-lg p-2.5 border border-emerald-100">
-            <p className="text-xs text-emerald-800 font-medium">Khái niệm vững</p>
-            <p className="text-lg font-extrabold text-emerald-600">{strongConcepts} / {mockConceptResults.length}</p>
+            <p className="text-xs text-emerald-800 font-medium">{lang === 'vi' ? 'Khái niệm vững' : 'Mastered Concepts'}</p>
+            <p className="text-lg font-extrabold text-emerald-600">{strongConcepts} / {conceptResults.length}</p>
           </div>
           <div className="bg-amber-50/50 rounded-lg p-2.5 border border-amber-100">
-            <p className="text-xs text-amber-800 font-medium">Cần ôn luyện thêm</p>
-            <p className="text-lg font-extrabold text-amber-600">{weakConcepts} / {mockConceptResults.length}</p>
+            <p className="text-xs text-amber-800 font-medium">{lang === 'vi' ? 'Cần ôn luyện thêm' : 'Needs Review'}</p>
+            <p className="text-lg font-extrabold text-amber-600">{weakConcepts} / {conceptResults.length}</p>
           </div>
         </div>
       </div>
@@ -293,15 +374,17 @@ export default function InterviewResultPage() {
         >
           <div className="flex items-center gap-2">
             <Sparkles className="text-indigo-600" size={18} />
-            <h3 className="font-bold text-sm text-foreground">Nhận xét từ Recall AI</h3>
+            <h3 className="font-bold text-sm text-foreground">{lang === 'vi' ? 'Nhận xét từ Recall AI' : 'Recall AI Feedback'}</h3>
           </div>
           {aiSummaryOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
 
         {aiSummaryOpen && (
           <div className="px-5 pb-5 pt-1 space-y-4 border-t border-border/60">
-            <p className="text-xs text-zinc-600 leading-relaxed">
-              Bạn đã thể hiện tư duy lập trình vững vàng ở các phần cấu trúc Scope và Promises cơ bản. Tuy nhiên, việc tối ưu Closures tránh rò rỉ tài nguyên bộ nhớ và hiểu cặn kẽ Event Loop là hai điểm mấu chốt bạn cần củng cố thêm trước khi chuyển sang các chủ đề Framework phức tạp hơn.
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {lang === 'vi'
+                ? 'Bạn đã thể hiện tư duy lập trình vững vàng ở các phần cấu trúc Scope và Promises cơ bản. Tuy nhiên, việc tối ưu Closures tránh rò rỉ tài nguyên bộ nhớ và hiểu cặn kẽ Event Loop là hai điểm mấu chốt bạn cần củng cố thêm trước khi chuyển sang các chủ đề Framework phức tạp hơn.'
+                : 'You showed solid programming logic in basic Scope and Promises. However, optimizing Closures to avoid memory leaks and deeply understanding the Event Loop are two key aspects you need to revise before moving to complex Frameworks.'}
             </p>
 
             {/* Bullets layout */}
@@ -310,11 +393,11 @@ export default function InterviewResultPage() {
               <div className="space-y-2 bg-emerald-50/20 p-3 rounded-lg border border-emerald-100/50">
                 <h4 className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
                   <CheckCircle size={14} />
-                  Điểm mạnh (Strengths)
+                  {lang === 'vi' ? 'Điểm mạnh (Strengths)' : 'Strengths'}
                 </h4>
-                <ul className="text-[11px] text-zinc-600 space-y-1.5 list-disc pl-4">
-                  <li>Xác định Scope chain rất nhanh và chính xác</li>
-                  <li>Sử dụng Promise chaining thành thạo</li>
+                <ul className="text-[11px] text-muted-foreground space-y-1.5 list-disc pl-4">
+                  <li>{lang === 'vi' ? 'Xác định Scope chain rất nhanh và chính xác' : 'Resolve scope chains very quickly and accurately'}</li>
+                  <li>{lang === 'vi' ? 'Sử dụng Promise chaining thành thạo' : 'Proficient in using Promise chaining'}</li>
                 </ul>
               </div>
 
@@ -322,11 +405,11 @@ export default function InterviewResultPage() {
               <div className="space-y-2 bg-rose-50/20 p-3 rounded-lg border border-rose-100/50">
                 <h4 className="text-xs font-bold text-rose-700 flex items-center gap-1.5">
                   <AlertTriangle size={14} />
-                  Điểm yếu (Weaknesses)
+                  {lang === 'vi' ? 'Điểm yếu (Weaknesses)' : 'Weaknesses'}
                 </h4>
-                <ul className="text-[11px] text-zinc-600 space-y-1.5 list-disc pl-4">
-                  <li>Chưa hiểu sâu về cách Closures giữ tham chiếu Heap</li>
-                  <li>Nhầm lẫn cơ chế ưu tiên giữa Micro và Macrotask</li>
+                <ul className="text-[11px] text-muted-foreground space-y-1.5 list-disc pl-4">
+                  <li>{lang === 'vi' ? 'Chưa hiểu sâu về cách Closures giữ tham chiếu Heap' : 'Lacks understanding of how Closures hold Heap references'}</li>
+                  <li>{lang === 'vi' ? 'Nhầm lẫn cơ chế ưu tiên giữa Micro và Macrotask' : 'Confuses priorities of Micro and Macrotasks'}</li>
                 </ul>
               </div>
 
@@ -334,11 +417,11 @@ export default function InterviewResultPage() {
               <div className="space-y-2 bg-indigo-50/20 p-3 rounded-lg border border-indigo-100/50">
                 <h4 className="text-xs font-bold text-indigo-700 flex items-center gap-1.5">
                   <Lightbulb size={14} />
-                  Khuyến nghị (Recommendations)
+                  {lang === 'vi' ? 'Khuyến nghị (Recommendations)' : 'Recommendations'}
                 </h4>
-                <ul className="text-[11px] text-zinc-600 space-y-1.5 list-disc pl-4">
-                  <li>Ôn lại bài giảng về Garbage Collector trong JS</li>
-                  <li>Thực hành chạy tay hoạt động của Event Loop</li>
+                <ul className="text-[11px] text-muted-foreground space-y-1.5 list-disc pl-4">
+                  <li>{lang === 'vi' ? 'Ôn lại bài giảng về Garbage Collector trong JS' : 'Revise Garbage Collector architecture in JS'}</li>
+                  <li>{lang === 'vi' ? 'Thực hành chạy tay hoạt động của Event Loop' : 'Practice manually tracing the Event Loop steps'}</li>
                 </ul>
               </div>
             </div>
@@ -346,36 +429,38 @@ export default function InterviewResultPage() {
         )}
       </div>
 
-      {/* ─── SECTION 3: TRACEBACK INFO (AE-08, Conditional) ─── */}
+      {/* ─── SECTION 3: TRACEBACK INFO ─── */}
       {tracebacks.length > 0 && (
         <div className="traceback-card border border-border rounded-xl p-5 space-y-3.5 shadow-sm">
           <div className="flex items-center gap-2 text-amber-600">
             <AlertTriangle size={18} />
-            <h3 className="font-bold text-sm">Phát hiện lỗ hổng nền tảng (Traceback Node)</h3>
+            <h3 className="font-bold text-sm">{lang === 'vi' ? 'Phát hiện lỗ hổng nền tảng (Traceback Node)' : 'Found Prerequisite Gap (Traceback Node)'}</h3>
           </div>
           
-          <p className="text-xs text-zinc-600">
-            Recall AI đã phân tích đồ thị khái niệm và phát hiện lỗ hổng ở kiến thức tiên quyết làm ảnh hưởng tiêu cực đến điểm số các khái niệm nâng cao hơn:
+          <p className="text-xs text-muted-foreground">
+            {lang === 'vi'
+              ? 'Recall AI đã phân tích đồ thị khái niệm và phát hiện lỗ hổng ở kiến thức tiên quyết làm ảnh hưởng tiêu cực đến điểm số các khái niệm nâng cao hơn:'
+              : 'Recall AI analyzed the concept graph and found gaps in prerequisite concepts affecting advanced topics:'}
           </p>
 
           <div className="space-y-2">
             {tracebacks.map((node) => (
               <div key={node.id} className="traceback-relationship">
                 <div className="flex-1 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="font-semibold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded">
+                  <span className="font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
                     P: {node.prereqName}
                   </span>
                   <span className="text-muted-foreground">→</span>
-                  <span className="font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                  <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
                     C: {node.conceptName}
                   </span>
-                  <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium ml-auto">
-                    Đã thêm vào lịch ôn
+                  <span className="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded font-medium ml-auto">
+                    {lang === 'vi' ? 'Đã thêm vào lịch ôn' : 'Added to schedule'}
                   </span>
                 </div>
                 <button
                   onClick={() => handleDismissTraceback(node.id)}
-                  className="p-1 hover:bg-zinc-100 rounded text-muted-foreground hover:text-foreground transition-colors"
+                  className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
                   title="Bỏ qua"
                 >
                   <X size={14} />
@@ -389,12 +474,13 @@ export default function InterviewResultPage() {
       {/* ─── SECTION 4: CONCEPT DETAIL ACCORDION ─── */}
       <div className="space-y-3">
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          Chi tiết đánh giá từng khái niệm
+          {lang === 'vi' ? 'Chi tiết đánh giá từng khái niệm' : 'Detailed Assessment per Concept'}
         </h2>
 
         <div className="space-y-2">
-          {mockConceptResults.map((concept) => {
+          {conceptResults.map((concept) => {
             const isOpen = expandedConcept === concept.id
+            const isDisputed = disputedConcepts[concept.name]
             return (
               <div
                 key={concept.id}
@@ -412,6 +498,11 @@ export default function InterviewResultPage() {
                     >
                       {concept.score.toFixed(1)}/10 — {getMasteryLabel(concept.score)}
                     </Badge>
+                    {isDisputed && (
+                      <Badge className="bg-amber-500/15 text-amber-500 hover:bg-amber-500/20 border border-amber-500/25 text-[9px] py-0.5 px-1.5 uppercase font-bold">
+                        {lang === 'vi' ? 'Đang khiếu nại' : 'Dispute Pending'}
+                      </Badge>
+                    )}
                   </div>
                   {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
@@ -421,17 +512,17 @@ export default function InterviewResultPage() {
                   <div className="result-accordion-content space-y-4">
                     
                     {/* Turn-by-turn scores */}
-                    <div className="border border-border rounded-lg overflow-hidden divide-y divide-border">
+                    <div className="border rounded-lg overflow-hidden divide-y">
                       {concept.turns.map((turn) => (
-                        <div key={turn.turn} className="p-3 bg-zinc-50/50 flex flex-col gap-2">
+                        <div key={turn.turn} className="p-3 bg-muted/30 flex flex-col gap-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                              Lượt {turn.turn}/3 — Câu hỏi
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                              {lang === 'vi' ? `Lượt ${turn.turn}/3 — Câu hỏi` : `Turn ${turn.turn}/3 — Question`}
                             </span>
                             <Badge
                               className={`${getScoreClass(turn.score)} border-0 text-[9px] py-0 px-1.5`}
                             >
-                              {turn.score.toFixed(1)} — {turn.verdict}
+                              {turn.score.toFixed(1)} — {turn.verdict === 'deep' ? (lang === 'vi' ? 'Chính xác' : 'Correct') : turn.verdict === 'shallow' ? (lang === 'vi' ? 'Chưa đủ' : 'Partial') : (lang === 'vi' ? 'Sai/Thiếu' : 'Incorrect')}
                             </Badge>
                           </div>
                           
@@ -443,15 +534,17 @@ export default function InterviewResultPage() {
                     </div>
 
                     {/* Dispute score trigger */}
-                    <div className="flex justify-end pt-1">
-                      <button
-                        onClick={() => handleOpenDispute(concept.name)}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 hover:underline"
-                      >
-                        <MessageSquareWarning size={13} />
-                        Khiếu nại điểm số này?
-                      </button>
-                    </div>
+                    {!isDisputed && (
+                      <div className="flex justify-end pt-1">
+                        <button
+                          onClick={() => handleOpenDispute(concept.name)}
+                          className="text-xs text-primary hover:text-primary/80 font-semibold flex items-center gap-1 hover:underline"
+                        >
+                          <MessageSquareWarning size={13} />
+                          {lang === 'vi' ? 'Khiếu nại điểm số này?' : 'Dispute this score?'}
+                        </button>
+                      </div>
+                    )}
 
                   </div>
                 )}
@@ -468,68 +561,70 @@ export default function InterviewResultPage() {
           onClick={() => navigate('/dashboard')}
           className="font-semibold text-muted-foreground hover:bg-surface text-sm"
         >
-          Về Dashboard
+          {lang === 'vi' ? 'Về Dashboard' : 'Back to Dashboard'}
         </Button>
         
         <Button
           onClick={() => navigate('/interview/config')}
           className="flex items-center gap-1.5 shadow-sm"
         >
-          Bắt đầu phiên tiếp theo
+          {lang === 'vi' ? 'Bắt đầu phiên tiếp theo' : 'Start Next Session'}
           <ArrowRight size={16} />
         </Button>
       </div>
 
-      {/* ─── DISPUTE SCORE DIALOG MODAL (AE-10) ─── */}
+      {/* ─── DISPUTE SCORE DIALOG MODAL ─── */}
       <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Khiếu nại điểm số</DialogTitle>
+            <DialogTitle>{lang === 'vi' ? 'Khiếu nại điểm số' : 'Dispute Score'}</DialogTitle>
             <DialogDescription className="text-xs">
-              Yêu cầu đánh giá lại câu trả lời của khái niệm <strong>{disputeConceptName}</strong>.
+              {lang === 'vi' 
+                ? <>Yêu cầu đánh giá lại câu trả lời của khái niệm <strong>{disputeConceptName}</strong>.</>
+                : <>Request evaluation of answers for concept <strong>{disputeConceptName}</strong>.</>}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div>
               <label className="text-[10px] font-bold uppercase text-muted-foreground block mb-1.5">
-                Lý do khiếu nại
+                {lang === 'vi' ? 'Lý do khiếu nại' : 'Reason for Dispute'}
               </label>
               <select
                 value={disputeReason}
                 onChange={(e) => setDisputeReason(e.target.value)}
-                className="w-full text-xs border border-border rounded-lg p-2.5 bg-white focus:outline-none focus:border-indigo-500"
+                className="w-full text-xs border rounded-lg p-2.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                <option value="score-mismatch">Điểm số quá thấp so với câu trả lời</option>
-                <option value="incorrect-feedback">Nhận xét của AI bị sai lệch chuyên môn</option>
-                <option value="voice-error">Lỗi đọc giọng nói/STT không nhận diện đúng ý</option>
-                <option value="other">Lý do khác</option>
+                <option value="score-mismatch">{lang === 'vi' ? 'Điểm số quá thấp so với câu trả lời' : 'Score is too low compared to my answer'}</option>
+                <option value="incorrect-feedback">{lang === 'vi' ? 'Nhận xét của AI bị sai lệch chuyên môn' : 'AI feedback is professionally incorrect'}</option>
+                <option value="voice-error">{lang === 'vi' ? 'Lỗi đọc giọng nói/STT không nhận diện đúng ý' : 'Voice recognition failed to capture my intent'}</option>
+                <option value="other">{lang === 'vi' ? 'Lý do khác' : 'Other reason'}</option>
               </select>
             </div>
 
             <div>
               <label className="text-[10px] font-bold uppercase text-muted-foreground block mb-1.5">
-                Chi tiết lý do khiếu nại (bắt buộc)
+                {lang === 'vi' ? 'Chi tiết lý do khiếu nại (bắt buộc)' : 'Dispute Details (required)'}
               </label>
               <textarea
                 rows={4}
                 value={disputeText}
                 onChange={(e) => setDisputeText(e.target.value)}
-                placeholder="Nhập lý do cụ thể hoặc giải trình câu trả lời của bạn..."
-                className="w-full text-xs border border-border rounded-xl p-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 resize-none"
+                placeholder={lang === 'vi' ? 'Nhập lý do cụ thể hoặc giải trình câu trả lời của bạn...' : 'Enter your specific reason or defense of your answer...'}
+                className="w-full text-xs border border-border rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary/40 resize-none"
               />
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDisputeOpen(false)}>
-              Hủy
+              {lang === 'vi' ? 'Hủy' : 'Cancel'}
             </Button>
             <Button
               disabled={disputeText.trim() === ''}
               onClick={handleSubmitDispute}
             >
-              Gửi khiếu nại
+              {lang === 'vi' ? 'Gửi khiếu nại' : 'Submit Dispute'}
             </Button>
           </DialogFooter>
         </DialogContent>

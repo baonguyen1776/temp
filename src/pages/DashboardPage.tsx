@@ -8,37 +8,35 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { usePlanStore } from '@/stores/planStore'
 import { useAuthStore } from '@/stores/authStore'
 import { Concept } from '@/models/Concept'
+import { useTranslation } from '@/stores/languageStore'
 
 const mockSuggestions = [
   {
     id: 1,
     concept: 'Closures in JavaScript',
     mastery: 'weak',
-    reason: (
-      <span>
-        Deadline gần • <span className="font-mono">3</span> ngày
-      </span>
-    ),
+    reason: {
+      vi: 'Deadline gần • 3 ngày',
+      en: 'Upcoming Deadline • 3 days'
+    }
   },
   {
     id: 2,
     concept: 'React Component Lifecycle',
     mastery: 'learning',
-    reason: (
-      <span>
-        Cần ôn tập • <span className="font-mono">2</span> lần/tuần
-      </span>
-    ),
+    reason: {
+      vi: 'Cần ôn tập • 2 lần/tuần',
+      en: 'Requires review • 2 times/week'
+    }
   },
   {
     id: 3,
     concept: 'TypeScript Generics',
     mastery: 'untested',
-    reason: (
-      <span>
-        Bạn vừa thêm • <span className="font-mono">0</span> ngày
-      </span>
-    ),
+    reason: {
+      vi: 'Bạn vừa thêm • 0 ngày',
+      en: 'Just added • 0 days'
+    }
   },
 ]
 
@@ -53,6 +51,7 @@ export default function DashboardPage() {
   const { plans } = usePlanStore()
   const { user } = useAuthStore()
   const { pausedSession, resumeSession, endSession } = useSessionStore()
+  const { t, lang } = useTranslation()
   
   const userName = user?.name.split(' ')[0] || 'học viên'
 
@@ -61,24 +60,26 @@ export default function DashboardPage() {
       {/* SECTION 1: Greeting + Today's Suggestion */}
       <div>
         <h1 className="text-2xl font-semibold text-foreground mb-4">
-          Chào lại, {userName}! 👋
+          {t('welcome')}, {userName}! 👋
         </h1>
 
         {/* Paused Session Resume Banner */}
         {pausedSession && (
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between flex-wrap gap-4 shadow-sm animate-in fade-in duration-300 mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0 animate-pulse">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 animate-pulse">
                 <Clock size={20} />
               </div>
               <div>
                 <h3 className="font-semibold text-indigo-900 text-sm">
-                  Bạn có phiên {pausedSession.type === 'interview' ? 'Mock Interview' : 'Focus Session'} đang tạm dừng
+                  {lang === 'vi' ? 'Bạn có phiên' : 'You have a paused'}{' '}
+                  {pausedSession.type === 'interview' ? 'Mock Interview' : 'Focus Session'}{' '}
+                  {lang === 'vi' ? 'đang tạm dừng' : 'session'}
                 </h3>
                 <p className="text-xs text-indigo-700">
-                  Kế hoạch: <span className="font-semibold">{pausedSession.planName}</span>
+                  {lang === 'vi' ? 'Kế hoạch:' : 'Plan:'} <span className="font-semibold">{pausedSession.planName}</span>
                   {pausedSession.conceptName && (
-                    <> • Khái niệm: <span className="font-semibold">{pausedSession.conceptName}</span></>
+                    <> • {lang === 'vi' ? 'Khái niệm:' : 'Concept:'} <span className="font-semibold">{pausedSession.conceptName}</span></>
                   )}
                 </p>
               </div>
@@ -95,13 +96,13 @@ export default function DashboardPage() {
                 }}
                 size="sm"
               >
-                Tiếp tục phiên
+                {lang === 'vi' ? 'Tiếp tục phiên' : 'Resume Session'}
               </Button>
               <button
                 onClick={() => endSession()}
                 className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
               >
-                Kết thúc
+                {lang === 'vi' ? 'Kết thúc' : 'End'}
               </button>
             </div>
           </div>
@@ -109,7 +110,7 @@ export default function DashboardPage() {
 
         <div className="bg-card border border-[rgb(139_92_246)]/40 rounded-xl p-4 space-y-4">
           <h2 className="text-[rgb(139_92_246)] font-medium">
-            📚 Gợi ý hôm nay từ Recall AI
+            📚 {t('upcoming_reviews')}
           </h2>
 
           <div className="space-y-3">
@@ -125,7 +126,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={suggestion.id}
-                  className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-[rgb(249_250_251)] transition-colors"
+                  className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-muted/80 transition-colors"
                 >
                   {/* Mastery dot */}
                   <div
@@ -144,21 +145,21 @@ export default function DashboardPage() {
                     variant="outline"
                     className={`${concept.getMasteryBadgeClass()} border`}
                   >
-                    {concept.getMasteryLabel()}
+                    {lang === 'vi' ? concept.getMasteryLabel() : suggestion.mastery.toUpperCase()}
                   </Badge>
 
                   {/* Reason */}
                   <p className="text-muted-foreground text-xs">
-                    {suggestion.reason}
+                    {lang === 'vi' ? suggestion.reason.vi : suggestion.reason.en}
                   </p>
 
                   {/* Button */}
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate(`/memory/${suggestion.id}`)}
+                    onClick={() => navigate(`/focus/${suggestion.id}`)}
                   >
-                    Ôn ngay →
+                    {lang === 'vi' ? 'Ôn ngay →' : 'Review →'}
                   </Button>
                 </div>
               )
@@ -170,9 +171,9 @@ export default function DashboardPage() {
       {/* SECTION 2: Study Plans Grid */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-foreground font-semibold">Kế hoạch của tôi</h2>
+          <h2 className="text-foreground font-semibold">{t('plans')}</h2>
           <Button size="sm" variant="default" onClick={() => navigate('/plans/new')}>
-            Tạo mới +
+            {t('create_new_plan')} +
           </Button>
         </div>
 
@@ -180,10 +181,10 @@ export default function DashboardPage() {
           <div className="bg-card rounded-xl border border-border p-8 flex flex-col items-center justify-center text-center">
             <div className="text-4xl mb-3">📋</div>
             <p className="text-muted-foreground mb-4">
-              Bạn chưa có kế hoạch học tập nào
+              {lang === 'vi' ? 'Bạn chưa có kế hoạch học tập nào' : 'You do not have any study plans yet'}
             </p>
             <Button variant="default" onClick={() => navigate('/plans/new')}>
-              Tạo kế hoạch đầu tiên
+              {lang === 'vi' ? 'Tạo kế hoạch đầu tiên' : 'Create First Plan'}
             </Button>
           </div>
         ) : (
@@ -216,19 +217,19 @@ export default function DashboardPage() {
                       variant="outline"
                       className="bg-[rgb(16_185_129)]/20 text-[rgb(16_185_129)] border-[rgb(16_185_129)]/30"
                     >
-                      <span className="font-mono">{strong}</span> vững
+                      <span className="font-mono">{strong}</span> {lang === 'vi' ? 'vững' : 'strong'}
                     </Badge>
                     <Badge
                       variant="outline"
                       className="bg-[rgb(239_68_68)]/20 text-[rgb(239_68_68)] border-[rgb(239_68_68)]/30"
                     >
-                      <span className="font-mono">{learning}</span> yếu
+                      <span className="font-mono">{learning}</span> {lang === 'vi' ? 'yếu' : 'weak'}
                     </Badge>
                     <Badge
                       variant="outline"
                       className="bg-[rgb(139_92_246)]/30 text-white border-[rgb(139_92_246)]/30"
                     >
-                      <span className="font-mono">{untested}</span> chưa ôn
+                      <span className="font-mono">{untested}</span> {lang === 'vi' ? 'chưa ôn' : 'untested'}
                     </Badge>
                   </div>
 
@@ -239,7 +240,7 @@ export default function DashboardPage() {
                     className="w-full"
                     onClick={() => navigate(`/plans/${plan.id}`)}
                   >
-                    Tiếp tục
+                    {lang === 'vi' ? 'Tiếp tục' : 'Continue'}
                   </Button>
                 </div>
               )
@@ -250,7 +251,7 @@ export default function DashboardPage() {
 
       {/* SECTION: Concept Graph Mini */}
       <div>
-        <h2 className="text-foreground font-semibold mb-4">Đồ thị Khái niệm</h2>
+        <h2 className="text-foreground font-semibold mb-4">{t('concept_graph')}</h2>
         <ConceptGraphMini height={300} />
       </div>
 
@@ -260,9 +261,9 @@ export default function DashboardPage() {
         <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
           <Flame size={24} className="text-[rgb(236_72_153)]" />
           <div>
-            <p className="text-muted-foreground text-xs">Chuỗi</p>
+            <p className="text-muted-foreground text-xs">{lang === 'vi' ? 'Chuỗi' : 'Streak'}</p>
             <p className="text-[rgb(236_72_153)] font-semibold text-lg">
-              <span className="font-mono">{mockStats.streak}</span> ngày
+              <span className="font-mono">{mockStats.streak}</span> {lang === 'vi' ? 'ngày' : 'days'}
             </p>
           </div>
         </div>
@@ -271,7 +272,7 @@ export default function DashboardPage() {
         <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
           <Clock size={24} className="text-[rgb(59_130_246)]" />
           <div>
-            <p className="text-muted-foreground text-xs">Giờ tuần này</p>
+            <p className="text-muted-foreground text-xs">{lang === 'vi' ? 'Giờ tuần này' : 'Hours this week'}</p>
             <p className="text-[rgb(59_130_246)] font-semibold text-lg">
               <span className="font-mono">{mockStats.hoursThisWeek}</span>h
             </p>
@@ -282,7 +283,7 @@ export default function DashboardPage() {
         <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
           <CheckCircle2 size={24} className="text-[rgb(16_185_129)]" />
           <div>
-            <p className="text-muted-foreground text-xs">Phiên</p>
+            <p className="text-muted-foreground text-xs">{lang === 'vi' ? 'Phiên học' : 'Sessions'}</p>
             <p className="text-[rgb(16_185_129)] font-semibold text-lg font-mono">
               {mockStats.sessions}
             </p>

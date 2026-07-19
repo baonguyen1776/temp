@@ -10,7 +10,6 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import '@/styles/plan-detail.css'
-import { StudyPlan } from '@/models/StudyPlan'
 import { Concept } from '@/models/Concept'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,41 +23,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import ConceptGraphFull from '@/components/ConceptGraphFull'
-
-interface ScheduleItem {
-  conceptId: string
-  conceptName: string
-  mastery: number | null
-}
-
-// ─── Mock Data ──────────────────────────────────────────────────
-const mockSchedule: Record<number, ScheduleItem[]> = {
-  0: [
-    { conceptId: '8', conceptName: 'Destructuring', mastery: 0.30 },
-    { conceptId: '3', conceptName: 'Callbacks', mastery: 0.45 },
-  ],
-  1: [
-    { conceptId: '6', conceptName: 'Closures', mastery: 0.60 },
-  ],
-  2: [
-    { conceptId: '4', conceptName: 'Event Loop', mastery: null },
-    { conceptId: '2', conceptName: 'Promises', mastery: 0.70 },
-  ],
-  3: [
-    { conceptId: '1', conceptName: 'Async/Await', mastery: 0.85 },
-  ],
-  4: [
-    { conceptId: '8', conceptName: 'Destructuring', mastery: 0.30 },
-    { conceptId: '5', conceptName: 'Scope', mastery: 0.90 },
-  ],
-  5: [
-    { conceptId: '3', conceptName: 'Callbacks', mastery: 0.45 },
-    { conceptId: '7', conceptName: 'Functions', mastery: 0.95 },
-  ],
-  6: [
-    { conceptId: '6', conceptName: 'Closures', mastery: 0.60 },
-  ],
-}
+import { usePlanStore } from '@/stores/planStore'
+import { useTranslation } from '@/stores/languageStore'
 
 // ─── Schedule Helper ────────────────────────────────────────────
 const getWeekDates = () => {
@@ -75,14 +41,25 @@ const getWeekDates = () => {
   })
 }
 
-const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật']
-
 // ═══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
 export default function PlanDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { lang } = useTranslation()
+
+  const {
+    plans,
+    getPlanById,
+    deletePlan,
+    archivePlan,
+    resetPlanProgress,
+    schedules,
+    updateSchedule,
+  } = usePlanStore()
+
+  const plan = getPlanById(id || 'plan-1') || plans[0]
 
   // State
   const [showDropdown, setShowDropdown] = useState(false)
@@ -91,6 +68,11 @@ export default function PlanDetailPage() {
   const [activePopover, setActivePopover] = useState<string | null>(null)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Day names dynamically translated
+  const dayNames = lang === 'vi'
+    ? ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật']
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -119,16 +101,21 @@ export default function PlanDetailPage() {
     }
   }, [activePopover])
 
-  const plan = new StudyPlan({
-    id: id || 'plan-1',
-    name: 'JavaScript Advanced',
-    deadline: '2026-12-31',
-    status: 'active' as const,
-    progress: 65,
-    conceptCount: 8,
-  })
+  if (!plan) {
+    return (
+      <div className="p-8 text-center bg-card rounded-xl border border-border">
+        <h2 className="text-lg font-bold text-foreground">
+          {lang === 'vi' ? 'Không tìm thấy kế hoạch học tập' : 'Study plan not found'}
+        </h2>
+        <Button className="mt-4" onClick={() => navigate('/plans')}>
+          {lang === 'vi' ? 'Quay lại danh sách' : 'Back to List'}
+        </Button>
+      </div>
+    )
+  }
 
   const weekDates = getWeekDates()
+  const planSchedule = schedules[plan.id] || {}
 
   return (
     <div className="flex flex-col" style={{ minHeight: 'calc(100vh - 120px)' }}>
@@ -142,13 +129,15 @@ export default function PlanDetailPage() {
               {/* Deadline Badge */}
               <Badge variant="outline" className="gap-1.5">
                 <Calendar size={12} />
-                {new Date(plan.deadline).toLocaleDateString('vi-VN')}
+                {new Date(plan.deadline).toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US')}
               </Badge>
 
               {/* Status Badge */}
               {plan.getStatusLabel() && (
                 <Badge variant="outline" className={plan.getStatusBadgeClass() + ' border'}>
-                  {plan.getStatusLabel()}
+                  {lang === 'vi' 
+                    ? plan.getStatusLabel() 
+                    : plan.status === 'active' ? 'Active' : plan.status === 'draft' ? 'Draft' : 'Archived'}
                 </Badge>
               )}
             </div>
@@ -158,7 +147,7 @@ export default function PlanDetailPage() {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(prev => !prev)}
-              className="p-2 hover:bg-[rgb(249_250_251)] rounded-lg transition-colors"
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
               aria-label="Menu hành động"
             >
               <MoreVertical size={20} className="text-foreground" />
@@ -168,25 +157,35 @@ export default function PlanDetailPage() {
               <div className="plan-dropdown-menu">
                 <button
                   className="plan-dropdown-item"
-                  onClick={() => { setShowDropdown(false) }}
+                  onClick={() => {
+                    archivePlan(plan.id)
+                    setShowDropdown(false)
+                  }}
                 >
                   <ArchiveIcon size={16} />
-                  Lưu trữ
+                  {lang === 'vi' ? 'Lưu trữ' : 'Archive'}
                 </button>
                 <button
                   className="plan-dropdown-item plan-dropdown-item--danger"
-                  onClick={() => { setShowDropdown(false) }}
+                  onClick={() => {
+                    deletePlan(plan.id)
+                    setShowDropdown(false)
+                    navigate('/plans')
+                  }}
                 >
                   <Trash2 size={16} />
-                  Xóa kế hoạch
+                  {lang === 'vi' ? 'Xóa kế hoạch' : 'Delete Plan'}
                 </button>
                 <div className="plan-dropdown-divider" />
                 <button
                   className="plan-dropdown-item"
-                  onClick={() => { setShowDropdown(false) }}
+                  onClick={() => {
+                    setShowDropdown(false)
+                    alert(lang === 'vi' ? "Đã gửi yêu cầu phân tích lại kế hoạch học tập." : "Request to re-analyze study plan has been submitted.")
+                  }}
                 >
                   <RefreshCw size={16} />
-                  Phân tích lại
+                  {lang === 'vi' ? 'Phân tích lại' : 'Re-analyze'}
                 </button>
               </div>
             )}
@@ -197,14 +196,14 @@ export default function PlanDetailPage() {
       {/* ═══ TABS ═══ */}
       <Tabs defaultValue="graph" className="flex-1">
         <TabsList className="mb-6">
-          <TabsTrigger value="graph">Đồ thị Khái niệm</TabsTrigger>
-          <TabsTrigger value="schedule">Lịch Ôn tập</TabsTrigger>
-          <TabsTrigger value="settings">Cài đặt</TabsTrigger>
+          <TabsTrigger value="graph">{lang === 'vi' ? 'Đồ thị Khái niệm' : 'Concept Graph'}</TabsTrigger>
+          <TabsTrigger value="schedule">{lang === 'vi' ? 'Lịch Ôn tập' : 'Review Schedule'}</TabsTrigger>
+          <TabsTrigger value="settings">{lang === 'vi' ? 'Cài đặt' : 'Settings'}</TabsTrigger>
         </TabsList>
 
         {/* ─── TAB 1: Concept Graph ─── */}
         <TabsContent value="graph" className="border border-border rounded-lg overflow-hidden" style={{ height: '600px' }}>
-          <ConceptGraphFull planId={id} />
+          <ConceptGraphFull planId={plan.id} />
         </TabsContent>
 
         {/* ─── TAB 2: Review Schedule ─── */}
@@ -219,11 +218,11 @@ export default function PlanDetailPage() {
               <div className="toggle-switch__thumb" />
             </button>
             <span className="text-sm font-medium text-foreground">
-              Chỉnh sửa thủ công
+              {lang === 'vi' ? 'Chỉnh sửa thủ công' : 'Manual Reschedule'}
             </span>
             {editMode && (
               <span className="text-xs text-[rgb(59_130_246)]">
-                Kéo thả để di chuyển giữa các ngày
+                {lang === 'vi' ? 'Kéo thả để di chuyển giữa các ngày' : 'Drag and drop to move between days'}
               </span>
             )}
           </div>
@@ -234,16 +233,45 @@ export default function PlanDetailPage() {
               <div
                 key={day}
                 className={`schedule-day ${editMode ? 'schedule-day--edit' : ''}`}
+                onDragOver={(e) => {
+                  if (editMode) {
+                    e.preventDefault()
+                  }
+                }}
+                onDrop={(e) => {
+                  if (editMode) {
+                    const conceptId = e.dataTransfer.getData('text/plain')
+                    const fromDayStr = e.dataTransfer.getData('fromDay')
+                    if (conceptId && fromDayStr) {
+                      const fromDay = Number(fromDayStr)
+                      const toDay = idx
+                      if (fromDay !== toDay) {
+                        const currentSchedule = { ...planSchedule }
+                        const sourceList = [...(currentSchedule[fromDay] || [])]
+                        const targetList = [...(currentSchedule[toDay] || [])]
+                        
+                        const itemIdx = sourceList.findIndex(item => item.conceptId === conceptId)
+                        if (itemIdx !== -1) {
+                          const [movedItem] = sourceList.splice(itemIdx, 1)
+                          targetList.push(movedItem)
+                          currentSchedule[fromDay] = sourceList
+                          currentSchedule[toDay] = targetList
+                          updateSchedule(plan.id, currentSchedule)
+                        }
+                      }
+                    }
+                  }
+                }}
               >
                 <div className="schedule-day__header">
                   {day}
                   <div className="schedule-day__date">
-                    {weekDates[idx].toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                    {weekDates[idx].toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US', { day: '2-digit', month: '2-digit' })}
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  {(mockSchedule[idx] || []).map((item) => {
+                <div className="space-y-2 min-h-37.5">
+                  {(planSchedule[idx] || []).map((item) => {
                     const concept = new Concept({
                       id: item.conceptId,
                       name: item.conceptName,
@@ -255,8 +283,15 @@ export default function PlanDetailPage() {
                     return (
                       <div key={`${idx}-${item.conceptId}`} className="relative">
                         <button
-                          className={`schedule-chip ${editMode ? 'schedule-chip--draggable' : ''}`}
+                          className={`schedule-chip ${editMode ? 'schedule-chip--draggable cursor-grab' : ''}`}
                           style={{ background: concept.getMasteryHexColor() }}
+                          draggable={editMode}
+                          onDragStart={(e) => {
+                            if (editMode) {
+                              e.dataTransfer.setData('text/plain', item.conceptId)
+                              e.dataTransfer.setData('fromDay', String(idx))
+                            }
+                          }}
                           onClick={(e) => {
                             e.stopPropagation()
                             setActivePopover(
@@ -299,7 +334,7 @@ export default function PlanDetailPage() {
                               variant="default"
                               onClick={() => navigate(`/focus/${concept.id}`)}
                             >
-                              Ôn ngay →
+                              {lang === 'vi' ? 'Ôn ngay →' : 'Review Now →'}
                             </Button>
                           </div>
                         )}
@@ -318,18 +353,20 @@ export default function PlanDetailPage() {
           <div className="settings-section">
             <div className="flex items-center gap-2 mb-1">
               <Upload size={18} className="text-foreground" />
-              <h3 className="text-base font-semibold text-foreground">Cập nhật tài liệu mới</h3>
+              <h3 className="text-base font-semibold text-foreground">
+                {lang === 'vi' ? 'Cập nhật tài liệu mới' : 'Upload New Document'}
+              </h3>
             </div>
             <p className="text-sm text-[rgb(156_163_175)] mb-4">
-              Tải lên tài liệu mới để Recall AI phân tích lại kế hoạch học tập của bạn.
+              {lang === 'vi' ? 'Tải lên tài liệu mới để Recall AI phân tích lại kế hoạch học tập của bạn.' : 'Upload a new document to let Recall AI re-analyze your study plan.'}
             </p>
             <div className="upload-zone">
               <Upload size={28} className="text-[rgb(156_163_175)] mx-auto mb-2" />
               <p className="text-sm text-[rgb(156_163_175)] mb-3">
-                Kéo thả file PDF hoặc văn bản vào đây
+                {lang === 'vi' ? 'Kéo thả file PDF hoặc văn bản vào đây' : 'Drag & drop PDF files or raw text here'}
               </p>
-              <Button variant="outline" size="sm">
-                Chọn file
+              <Button variant="outline" size="sm" onClick={() => alert("Chức năng tải tài liệu mới lên đang được giả lập.")}>
+                {lang === 'vi' ? 'Chọn file' : 'Select File'}
               </Button>
             </div>
           </div>
@@ -338,16 +375,18 @@ export default function PlanDetailPage() {
           <div className="settings-section settings-danger">
             <div className="flex items-center gap-2 mb-1">
               <AlertTriangle size={18} className="text-[rgb(239_68_68)]" />
-              <h3 className="text-base font-semibold text-[rgb(239_68_68)]">Khu vực nguy hiểm</h3>
+              <h3 className="text-base font-semibold text-[rgb(239_68_68)]">
+                {lang === 'vi' ? 'Khu vực nguy hiểm' : 'Danger Zone'}
+              </h3>
             </div>
             <p className="text-sm text-[rgb(156_163_175)] mb-4">
-              Đặt lại tất cả tiến độ học tập. Hành động này không thể hoàn tác.
+              {lang === 'vi' ? 'Đặt lại tất cả tiến độ học tập. Hành động này không thể hoàn tác.' : 'Reset all study progress. This action cannot be undone.'}
             </p>
             <Button
               variant="destructive"
               onClick={() => setShowResetDialog(true)}
             >
-              Đặt lại toàn bộ tiến độ
+              {lang === 'vi' ? 'Đặt lại toàn bộ tiến độ' : 'Reset All Progress'}
             </Button>
           </div>
 
@@ -355,17 +394,22 @@ export default function PlanDetailPage() {
           <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Xác nhận đặt lại?</DialogTitle>
+                <DialogTitle>
+                  {lang === 'vi' ? 'Xác nhận đặt lại?' : 'Confirm Reset?'}
+                </DialogTitle>
                 <DialogDescription>
-                  Tất cả tiến độ học tập sẽ bị xóa. Hành động này không thể hoàn tác.
+                  {lang === 'vi' ? 'Tất cả tiến độ học tập sẽ bị xóa. Hành động này không thể hoàn tác.' : 'All study progress will be cleared. This action cannot be undone.'}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowResetDialog(false)}>
-                  Hủy
+                  {lang === 'vi' ? 'Hủy' : 'Cancel'}
                 </Button>
-                <Button variant="destructive" onClick={() => setShowResetDialog(false)}>
-                  Đặt lại
+                <Button variant="destructive" onClick={() => {
+                  resetPlanProgress(plan.id)
+                  setShowResetDialog(false)
+                }}>
+                  {lang === 'vi' ? 'Đặt lại' : 'Reset'}
                 </Button>
               </DialogFooter>
             </DialogContent>

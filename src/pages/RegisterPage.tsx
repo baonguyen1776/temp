@@ -136,7 +136,7 @@ export default function RegisterPage() {
 
   return (
     <div className="login-bg flex items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-sm bg-white rounded-xl border border-border p-8 relative z-10">
+      <div className="w-full max-w-sm bg-card rounded-xl border border-border p-8 relative z-10">
         {/* Logo and Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">

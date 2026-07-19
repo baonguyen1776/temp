@@ -64,7 +64,7 @@ export default function MemoryDetailPage() {
       </div>
 
       {/* Memory Card */}
-      <article className="bg-white rounded-lg border border-border p-8 shadow-md">
+      <article className="bg-card rounded-lg border border-border p-8 shadow-md">
         {/* Title */}
         <h1 className="text-4xl font-bold text-text-primary mb-4">
           {memory.title}

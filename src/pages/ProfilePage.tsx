@@ -1,8 +1,10 @@
 import { useAuthStore } from '@/stores/authStore'
 import { User as UserIcon, Mail } from 'lucide-react'
+import { useTranslation } from '@/stores/languageStore'
 
 export default function ProfilePage() {
   const { user, setUser, isAuthenticated } = useAuthStore()
+  const { lang } = useTranslation()
 
   const handleLogin = () => {
     // TODO: Implement actual authentication
@@ -18,15 +20,17 @@ export default function ProfilePage() {
     return (
       <div className="max-w-md mx-auto py-12">
         <div className="card p-8 text-center space-y-6">
-          <h1 className="section-title">Sign In</h1>
+          <h1 className="section-title">
+            {lang === 'vi' ? 'Đăng nhập' : 'Sign In'}
+          </h1>
           <p className="text-text-secondary">
-            Sign in to start capturing and organizing your memories.
+            {lang === 'vi' ? 'Đăng nhập để bắt đầu lưu trữ và quản lý ký ức.' : 'Sign in to start capturing and organizing your memories.'}
           </p>
           <button
             onClick={handleLogin}
             className="btn-primary w-full"
           >
-            Sign In with Email
+            {lang === 'vi' ? 'Đăng nhập bằng Email' : 'Sign In with Email'}
           </button>
         </div>
       </div>
@@ -35,7 +39,9 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="section-title">Profile</h1>
+      <h1 className="section-title">
+        {lang === 'vi' ? 'Hồ sơ cá nhân' : 'Profile'}
+      </h1>
 
       <div className="card p-8 space-y-6">
         {/* Avatar */}
@@ -55,7 +61,7 @@ export default function ProfilePage() {
             <UserIcon className="w-5 h-5 text-text-secondary" />
             <div>
               <p className="text-xs text-text-secondary uppercase tracking-wide">
-                Name
+                {lang === 'vi' ? 'Họ và tên' : 'Name'}
               </p>
               <p className="text-text-primary font-medium">{user?.name}</p>
             </div>
@@ -65,7 +71,7 @@ export default function ProfilePage() {
             <Mail className="w-5 h-5 text-text-secondary" />
             <div>
               <p className="text-xs text-text-secondary uppercase tracking-wide">
-                Email
+                {lang === 'vi' ? 'Địa chỉ Email' : 'Email'}
               </p>
               <p className="text-text-primary font-medium">{user?.email}</p>
             </div>
@@ -74,7 +80,9 @@ export default function ProfilePage() {
 
         {/* Settings */}
         <div className="pt-6 border-t border-border">
-          <h2 className="section-subtitle">Preferences</h2>
+          <h2 className="section-subtitle">
+            {lang === 'vi' ? 'Tùy chọn thông báo' : 'Preferences'}
+          </h2>
           <div className="space-y-3">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
@@ -83,7 +91,7 @@ export default function ProfilePage() {
                 className="w-4 h-4 rounded"
               />
               <span className="text-text-primary">
-                Email notifications for shared memories
+                {lang === 'vi' ? 'Nhận thông báo qua Email khi có ký ức được chia sẻ' : 'Email notifications for shared memories'}
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -93,7 +101,7 @@ export default function ProfilePage() {
                 className="w-4 h-4 rounded"
               />
               <span className="text-text-primary">
-                Daily digest of new memories
+                {lang === 'vi' ? 'Nhận tóm tắt ký ức hàng ngày' : 'Daily digest of new memories'}
               </span>
             </label>
           </div>

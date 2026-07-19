@@ -2,9 +2,11 @@ import { useState, useMemo } from 'react'
 import { useMemoryStore } from '@/stores/memoryStore'
 import { MemoryCard } from '@/components/cards/MemoryCard'
 import { Search as SearchIcon, Filter } from 'lucide-react'
+import { useTranslation } from '@/stores/languageStore'
 
 export default function SearchPage() {
   const { memories } = useMemoryStore()
+  const { lang } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'date' | 'rating'>('date')
@@ -47,14 +49,16 @@ export default function SearchPage() {
     <div className="space-y-6">
       {/* Search Header */}
       <div className="space-y-4">
-        <h1 className="section-title">Search Memories</h1>
+        <h1 className="section-title">
+          {lang === 'vi' ? 'Tìm kiếm Ký ức' : 'Search Memories'}
+        </h1>
 
         {/* Search Input */}
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-light" />
           <input
             type="text"
-            placeholder="Search by title, content, or tags..."
+            placeholder={lang === 'vi' ? 'Tìm kiếm bằng tiêu đề, nội dung hoặc thẻ...' : 'Search by title, content, or tags...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="input-field w-full pl-10 py-3 text-base"
@@ -66,7 +70,9 @@ export default function SearchPage() {
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-text-secondary" />
-          <span className="text-text-secondary font-medium">Filters:</span>
+          <span className="text-text-secondary font-medium">
+            {lang === 'vi' ? 'Bộ lọc:' : 'Filters:'}
+          </span>
         </div>
 
         {/* Category Filter */}
@@ -79,7 +85,7 @@ export default function SearchPage() {
                 : 'bg-surface text-text-primary hover:bg-border'
             }`}
           >
-            All
+            {lang === 'vi' ? 'Tất cả' : 'All'}
           </button>
           {categories.map((cat) => (
             <button
@@ -91,7 +97,10 @@ export default function SearchPage() {
                   : 'bg-surface text-text-primary hover:bg-border'
               }`}
             >
-              {cat}
+              {cat === 'work' ? (lang === 'vi' ? 'Công việc' : 'Work') :
+               cat === 'personal' ? (lang === 'vi' ? 'Cá nhân' : 'Personal') :
+               cat === 'learning' ? (lang === 'vi' ? 'Học tập' : 'Learning') :
+               (lang === 'vi' ? 'Khác' : 'Other')}
             </button>
           ))}
         </div>
@@ -102,15 +111,15 @@ export default function SearchPage() {
           onChange={(e) => setSortBy(e.target.value as 'date' | 'rating')}
           className="input-field text-sm"
         >
-          <option value="date">Newest First</option>
-          <option value="rating">Highest Rating</option>
+          <option value="date">{lang === 'vi' ? 'Mới nhất trước' : 'Newest First'}</option>
+          <option value="rating">{lang === 'vi' ? 'Đánh giá cao nhất' : 'Highest Rating'}</option>
         </select>
       </div>
 
       {/* Results */}
       <div>
         <p className="text-text-secondary text-sm mb-4">
-          Found {filteredMemories.length} memories
+          {lang === 'vi' ? `Tìm thấy ${filteredMemories.length} ký ức` : `Found ${filteredMemories.length} memories`}
         </p>
 
         {filteredMemories.length > 0 ? (
@@ -122,7 +131,7 @@ export default function SearchPage() {
         ) : (
           <div className="text-center py-12">
             <p className="text-text-secondary">
-              No memories found. Try adjusting your search.
+              {lang === 'vi' ? 'Không tìm thấy ký ức nào. Hãy thử điều chỉnh bộ lọc tìm kiếm.' : 'No memories found. Try adjusting your search.'}
             </p>
           </div>
         )}

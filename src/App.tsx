@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Router } from '@/router'
 import { useAuthStore } from '@/stores/authStore'
+import { ThemeProvider } from '@/components/theme-provider'
 
 export default function App() {
   const { setIsLoading, setUser } = useAuthStore()
@@ -21,5 +22,9 @@ export default function App() {
     initializeApp()
   }, [setIsLoading, setUser])
 
-  return <Router />
+  return (
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+      <Router />
+    </ThemeProvider>
+  )
 }
