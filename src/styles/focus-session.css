@@ -1,0 +1,139 @@
+/* Focus Session Styles */
+
+:root {
+  --color-focus-session: #EC4899;
+  --color-focus-session-rgb: 236, 72, 153;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Smooth animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Timer ring animation */
+.focus-timer-ring {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Modal animations */
+.focus-modal-overlay {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.focus-modal-content {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Pause state overlay */
+.focus-pause-overlay {
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Countdown pulse effect */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.focus-time-complete {
+  animation: pulse 0.6s ease-in-out 3;
+}
+
+/* Tabular numbers for consistent timer display */
+.tabular-nums {
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* Smooth color transitions for session type changes */
+.session-type-transition {
+  transition: background-color 300ms ease-in-out, color 300ms ease-in-out;
+}
+
+/* Focus session style helper rules */
+.text-focus-session {
+  color: var(--color-focus-session);
+}
+
+.bg-focus-session-20 {
+  background-color: rgba(var(--color-focus-session-rgb), 0.2);
+}
+
+.border-focus-session-30 {
+  border-color: rgba(var(--color-focus-session-rgb), 0.3);
+}
+
+/* Soft background styles for break state */
+.focus-container-work {
+  background-color: var(--color-background);
+  transition: background-color 0.4s ease;
+}
+
+.focus-container-break {
+  background-color: #FAF5F5; /* Softer pinkish-beige coffee tone background */
+  transition: background-color 0.4s ease;
+}
+
+.focus-panel-work {
+  background-color: var(--color-surface);
+  transition: background-color 0.4s ease;
+}
+
+.focus-panel-break {
+  background-color: #FFF9F9; /* Softer light panel during break */
+  transition: background-color 0.4s ease;
+}
+
+/* PDF viewer placeholder stylings */
+.pdf-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.03);
+  border: 2px dashed var(--color-border);
+  border-radius: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* Suggestions button highlighting */
+.suggestion-card-active {
+  border-color: var(--color-focus-session) !important;
+  background-color: rgba(var(--color-focus-session-rgb), 0.05) !important;
+}
+
+/* Auto-save notification */
+.autosave-indicator {
+  font-size: 0.75rem;
+  transition: opacity 0.3s ease;
+}

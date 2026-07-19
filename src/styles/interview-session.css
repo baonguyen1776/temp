@@ -1,0 +1,136 @@
+/* ============================================
+   InterviewSessionPage — Dark Mode & Chat Layout
+   ============================================ */
+
+/* Base Styles */
+.interview-theme-dark {
+  background-color: #09090b; /* bg-zinc-950 */
+  color: #f4f4f5; /* text-zinc-100 */
+}
+
+/* Chat Bubbles Fallback (defined in global.css, but customized if needed) */
+.chat-bubble-ai {
+  background-color: #27272a; /* bg-zinc-800 */
+  color: #f4f4f5;
+  border-radius: 0.75rem;
+  border-top-left-radius: 0;
+  padding: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border: 1px solid #3f3f46;
+}
+
+.chat-bubble-user {
+  background-color: #4f46e5; /* bg-indigo-600 */
+  color: #ffffff;
+  border-radius: 0.75rem;
+  border-top-right-radius: 0;
+  padding: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-left: auto;
+  text-align: left;
+}
+
+/* Microphone active recording animation */
+@keyframes micPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.mic-recording-active {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  animation: micPulse 1.5s infinite;
+}
+
+/* Sidebar transition */
+.interview-sidebar {
+  transition: width 0.3s ease, margin-right 0.3s ease;
+  will-change: width, margin-right;
+}
+
+/* Linear progress animation */
+.linear-progress-bar {
+  height: 4px;
+  background-color: rgba(79, 70, 229, 0.2); /* Indigo bg */
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.linear-progress-bar__fill {
+  height: 100%;
+  background-color: #4f46e5; /* bg-indigo-600 */
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Flashcard Styles */
+.flashcard-card {
+  perspective: 1000px;
+  min-height: 240px;
+  width: 100%;
+}
+
+.flashcard-card__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.flashcard-card--flipped .flashcard-card__inner {
+  transform: rotateY(180deg);
+}
+
+.flashcard-card__front,
+.flashcard-card__back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid #3f3f46;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.flashcard-card__front {
+  background-color: #18181b; /* bg-zinc-900 */
+  color: #f4f4f5;
+}
+
+.flashcard-card__back {
+  background-color: #27272a; /* bg-zinc-800 */
+  color: #f4f4f5;
+  transform: rotateY(180deg);
+}
+
+/* Pulse animation for loading questions */
+@keyframes loadingPulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.loading-question-pulse {
+  animation: loadingPulse 1.2s infinite ease-in-out;
+}

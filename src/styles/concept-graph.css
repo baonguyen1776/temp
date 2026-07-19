@@ -1,0 +1,253 @@
+/* ============================================
+   ConceptGraph — Shared Styles
+   ============================================ */
+
+/* ─── Filter Bar ─── */
+.cg-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-wrap: wrap;
+}
+
+.cg-filter-bar__search {
+  flex: 0 0 200px;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-primary);
+  background: var(--color-background);
+  transition: border-color 0.2s ease;
+}
+
+.cg-filter-bar__search:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.cg-filter-bar__chip {
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.cg-filter-bar__chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.cg-filter-bar__chip--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.cg-filter-bar__clear {
+  font-size: 0.6875rem;
+  color: var(--color-text-light);
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  transition: color 0.15s ease;
+}
+
+.cg-filter-bar__clear:hover {
+  color: var(--color-status-error);
+}
+
+/* ─── Concept Detail Panel (DB-06) ─── */
+.cg-detail-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 320px;
+  background-color: #1a1a2e;
+  color: #e0e0e0;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 20;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.cg-detail-panel--open {
+  transform: translateX(0);
+}
+
+.cg-detail-panel__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease;
+}
+
+.cg-detail-panel__close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cg-detail-panel__name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.cg-detail-panel__section-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+/* Sparkline container */
+.cg-sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  height: 2.5rem;
+  padding: 0.25rem 0;
+}
+
+.cg-sparkline__bar {
+  flex: 1;
+  border-radius: 0.125rem 0.125rem 0 0;
+  transition: height 0.3s ease;
+  min-width: 0.375rem;
+}
+
+/* Prerequisite / Dependent chips */
+.cg-dep-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cg-dep-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.cg-dep-chip__dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+/* Panel action buttons */
+.cg-panel-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.cg-panel-btn--interview {
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.cg-panel-btn--interview:hover {
+  background: #2563eb;
+}
+
+.cg-panel-btn--focus {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.cg-panel-btn--focus:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ─── Dimmed nodes (for search filtering) ─── */
+.concept-node--dimmed {
+  opacity: 0.2;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* ─── Mini variant ─── */
+.cg-mini-wrapper {
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.cg-mini-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.85);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.375rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
+  transform: translate(-50%, -100%);
+  margin-top: -8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  animation: tooltipFade 0.15s ease-out;
+}
+
+@keyframes tooltipFade {
+  from { opacity: 0; transform: translate(-50%, calc(-100% + 4px)); }
+  to { opacity: 1; transform: translate(-50%, -100%); }
+}
+
+.cg-mini-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.85);
+}
