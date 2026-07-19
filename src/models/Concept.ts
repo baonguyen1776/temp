@@ -74,6 +74,20 @@ export class Concept implements ConceptData {
     }
   }
 
+  getMasteryHexColor(): string {
+    const status = this.getStatus()
+    switch (status) {
+      case 'strong':
+        return '#10B981'
+      case 'learning':
+        return '#F59E0B'
+      case 'weak':
+        return '#EF4444'
+      default:
+        return '#9CA3AF'
+    }
+  }
+
   getMasteryBadgeClass(): string {
     const status = this.getStatus()
     switch (status) {

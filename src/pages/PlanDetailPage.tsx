@@ -10,6 +10,8 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import '@/styles/plan-detail.css'
+import { StudyPlan } from '@/models/StudyPlan'
+import { Concept } from '@/models/Concept'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -57,36 +59,6 @@ const mockSchedule: Record<number, ScheduleItem[]> = {
     { conceptId: '6', conceptName: 'Closures', mastery: 0.60 },
   ],
 }
-
-// ─── Helpers ────────────────────────────────────────────────────
-const getMasteryColor = (mastery: number | null): string => {
-  if (mastery === null) return '#9CA3AF'
-  if (mastery < 0.4) return '#EF4444'
-  if (mastery < 0.7) return '#F59E0B'
-  return '#10B981'
-}
-
-const getMasteryLabel = (mastery: number | null): string => {
-  if (mastery === null) return 'Chưa ôn'
-  if (mastery < 0.4) return 'Yếu'
-  if (mastery < 0.7) return 'Đang học'
-  return 'Vững'
-}
-
-const getStatusConfig = (status: string) => {
-  switch (status) {
-    case 'active':
-      return { label: 'Đang hoạt động', className: 'bg-[rgb(16_185_129)]/20 text-[rgb(16_185_129)] border-[rgb(16_185_129)]/30' }
-    case 'draft':
-      return { label: 'Nháp', className: 'bg-[rgb(156_163_175)]/20 text-[rgb(156_163_175)] border-[rgb(156_163_175)]/30' }
-    case 'archived':
-      return { label: 'Đã lưu trữ', className: 'bg-[rgb(107_114_128)]/20 text-[rgb(107_114_128)] border-[rgb(107_114_128)]/30' }
-    default:
-      return { label: status, className: '' }
-  }
-}
-
-
 
 // ─── Schedule Helper ────────────────────────────────────────────
 const getWeekDates = () => {
@@ -147,13 +119,15 @@ export default function PlanDetailPage() {
     }
   }, [activePopover])
 
-  const planData = {
+  const plan = new StudyPlan({
+    id: id || 'plan-1',
     name: 'JavaScript Advanced',
-    deadline: '2024-12-31',
+    deadline: '2026-12-31',
     status: 'active' as const,
-  }
+    progress: 65,
+    conceptCount: 8,
+  })
 
-  const statusConfig = getStatusConfig(planData.status)
   const weekDates = getWeekDates()
 
   return (
@@ -163,18 +137,20 @@ export default function PlanDetailPage() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <h1 className="text-2xl font-bold text-foreground">{planData.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{plan.name}</h1>
 
               {/* Deadline Badge */}
               <Badge variant="outline" className="gap-1.5">
                 <Calendar size={12} />
-                {new Date(planData.deadline).toLocaleDateString('vi-VN')}
+                {new Date(plan.deadline).toLocaleDateString('vi-VN')}
               </Badge>
 
               {/* Status Badge */}
-              <Badge variant="outline" className={statusConfig.className + ' border'}>
-                {statusConfig.label}
-              </Badge>
+              {plan.getStatusLabel() && (
+                <Badge variant="outline" className={plan.getStatusBadgeClass() + ' border'}>
+                  {plan.getStatusLabel()}
+                </Badge>
+              )}
             </div>
           </div>
 
@@ -267,59 +243,69 @@ export default function PlanDetailPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {(mockSchedule[idx] || []).map((item) => (
-                    <div key={`${idx}-${item.conceptId}`} className="relative">
-                      <button
-                        className={`schedule-chip ${editMode ? 'schedule-chip--draggable' : ''}`}
-                        style={{ background: getMasteryColor(item.mastery) }}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setActivePopover(
-                            activePopover === `${idx}-${item.conceptId}`
-                              ? null
-                              : `${idx}-${item.conceptId}`
-                          )
-                        }}
-                      >
-                        {item.conceptName}
-                      </button>
-
-                      {/* Popover */}
-                      {activePopover === `${idx}-${item.conceptId}` && (
-                        <div
-                          className="chip-popover"
-                          onClick={(e) => e.stopPropagation()}
+                  {(mockSchedule[idx] || []).map((item) => {
+                    const concept = new Concept({
+                      id: item.conceptId,
+                      name: item.conceptName,
+                      mastery: item.mastery,
+                      difficulty: 3,
+                      prerequisites: [],
+                    })
+                    
+                    return (
+                      <div key={`${idx}-${item.conceptId}`} className="relative">
+                        <button
+                          className={`schedule-chip ${editMode ? 'schedule-chip--draggable' : ''}`}
+                          style={{ background: concept.getMasteryHexColor() }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActivePopover(
+                              activePopover === `${idx}-${item.conceptId}`
+                                ? null
+                                : `${idx}-${item.conceptId}`
+                            )
+                          }}
                         >
-                          <p className="font-semibold text-foreground text-sm mb-1">
-                            {item.conceptName}
-                          </p>
-                          <div className="flex items-center gap-2 mb-3">
-                            <div
-                              className="w-2 h-2 rounded-full"
-                              style={{ background: getMasteryColor(item.mastery) }}
-                            />
-                            <span className="text-xs text-[rgb(156_163_175)]">
-                              {item.mastery !== null ? (
-                                <span>
-                                  <span className="font-mono">{Math.round(item.mastery * 100)}</span>% — {getMasteryLabel(item.mastery)}
-                                </span>
-                              ) : (
-                                getMasteryLabel(item.mastery)
-                              )}
-                            </span>
-                          </div>
-                          <Button
-                            size="sm"
-                            className="w-full"
-                            variant="default"
-                            onClick={() => navigate(`/focus/${item.conceptId}`)}
+                          {concept.name}
+                        </button>
+
+                        {/* Popover */}
+                        {activePopover === `${idx}-${item.conceptId}` && (
+                          <div
+                            className="chip-popover"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            Ôn ngay →
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                            <p className="font-semibold text-foreground text-sm mb-1">
+                              {concept.name}
+                            </p>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{ background: concept.getMasteryHexColor() }}
+                              />
+                              <span className="text-xs text-[rgb(156_163_175)]">
+                                {concept.mastery !== null ? (
+                                  <span>
+                                    <span className="font-mono">{Math.round(concept.mastery * 100)}</span>% — {concept.getMasteryLabel()}
+                                  </span>
+                                ) : (
+                                  concept.getMasteryLabel()
+                                )}
+                              </span>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="w-full"
+                              variant="default"
+                              onClick={() => navigate(`/focus/${concept.id}`)}
+                            >
+                              Ôn ngay →
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             ))}

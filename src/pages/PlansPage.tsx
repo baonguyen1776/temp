@@ -9,31 +9,6 @@ export default function PlansPage() {
   const navigate = useNavigate()
   const { plans, setActivePlan, activePlan } = usePlanStore()
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200/50 hover:bg-emerald-50">
-            Đang chạy
-          </Badge>
-        )
-      case 'draft':
-        return (
-          <Badge className="bg-zinc-100 text-zinc-700 border-zinc-200 hover:bg-zinc-100">
-            Nháp
-          </Badge>
-        )
-      case 'archived':
-        return (
-          <Badge className="bg-zinc-100 text-zinc-500 border-zinc-200 hover:bg-zinc-100">
-            Lưu trữ
-          </Badge>
-        )
-      default:
-        return null
-    }
-  }
-
   const handleSelectPlan = (planId: string) => {
     const plan = plans.find(p => p.id === planId)
     if (plan) {
@@ -101,7 +76,11 @@ export default function PlansPage() {
                           Đang học
                         </Badge>
                       )}
-                      {getStatusBadge(plan.status)}
+                      {plan.getStatusLabel() && (
+                        <Badge className={plan.getStatusBadgeClass()}>
+                          {plan.getStatusLabel()}
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
