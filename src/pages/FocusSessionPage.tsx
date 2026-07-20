@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileIcon,
+  RotateCcw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +36,7 @@ interface Concept {
   name: string
   mastery: number | null
   isRemediating?: boolean
+  difficulty?: number
 }
 
 interface SuggestionConcept extends Concept {
@@ -154,6 +156,7 @@ export default function FocusSessionPage() {
   const [showCompleteModal, setShowCompleteModal] = useState(false)
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(true)
   const [activeTab, setActiveTab] = useState<'doc' | 'notes'>('doc')
+  const [layoutMode, setLayoutMode] = useState<'split' | 'timer-focused' | 'doc-focused' | 'timer-minimal'>('split')
   
   // Notes State
   const [notes, setNotes] = useState<Note[]>(defaultNotes)
@@ -325,10 +328,10 @@ export default function FocusSessionPage() {
   }
 
   const getMasteryLabel = (mastery: number | null): string => {
-    if (mastery === null) return lang === 'vi' ? 'Chưa ôn' : 'Not Reviewed'
-    if (mastery < 0.4) return lang === 'vi' ? 'Yếu' : 'Weak'
+    if (mastery === null) return lang === 'vi' ? 'Sẵn sàng học' : 'Ready to Learn'
+    if (mastery < 0.4) return lang === 'vi' ? 'Cần củng cố' : 'Review Focus'
     if (mastery < 0.7) return lang === 'vi' ? 'Đang học' : 'Learning'
-    return lang === 'vi' ? 'Vững' : 'Mastered'
+    return lang === 'vi' ? 'Đã vững' : 'Mastered'
   }
 
   const isBreakActive = timerState === 'break'
@@ -360,6 +363,62 @@ export default function FocusSessionPage() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Mini Timer when minimalist mode is active */}
+          {layoutMode === 'timer-minimal' && (
+            <div className="flex items-center gap-3 bg-focus-session/15 border border-focus-session/20 rounded-full px-3 py-1 text-xs font-semibold animate-in fade-in duration-200">
+              <span className="font-mono text-foreground">{formatTime(timeLeft)}</span>
+              <span className="text-[9px] text-(--color-focus-session) font-bold uppercase tracking-wider">
+                {sessionType === 'work' ? (lang === 'vi' ? 'Học' : 'Work') : (lang === 'vi' ? 'Nghỉ' : 'Break')}
+              </span>
+              <div className="flex items-center gap-1.5 border-l border-border pl-2">
+                {timerState === 'running' ? (
+                  <button onClick={() => setTimerState('paused')} className="text-muted-foreground hover:text-foreground p-0.5" title={lang === 'vi' ? 'Tạm dừng' : 'Pause'}>
+                    <Pause size={10} fill="currentColor" />
+                  </button>
+                ) : (
+                  <button onClick={() => setTimerState('running')} className="text-muted-foreground hover:text-foreground p-0.5" title={lang === 'vi' ? 'Tiếp tục' : 'Resume'}>
+                    <Play size={10} fill="currentColor" />
+                  </button>
+                )}
+                <button onClick={() => { setTimeLeft(config.workDuration * 60); setTimerState('paused'); }} className="text-muted-foreground hover:text-foreground p-0.5" title={lang === 'vi' ? 'Đặt lại' : 'Reset'}>
+                  <RotateCcw size={10} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Layout Switcher */}
+          <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md border border-border text-xs shrink-0">
+            <button
+              onClick={() => setLayoutMode('split')}
+              className={`px-2 py-0.5 rounded text-[11px] transition-all font-semibold ${layoutMode === 'split' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+              title={lang === 'vi' ? 'Chia đôi' : 'Split View'}
+            >
+              {lang === 'vi' ? 'Mặc định' : 'Split'}
+            </button>
+            <button
+              onClick={() => setLayoutMode('timer-focused')}
+              className={`px-2 py-0.5 rounded text-[11px] transition-all font-semibold ${layoutMode === 'timer-focused' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+              title={lang === 'vi' ? 'Ưu tiên Hẹn giờ' : 'Timer Focus'}
+            >
+              {lang === 'vi' ? 'Hẹn giờ' : 'Timer'}
+            </button>
+            <button
+              onClick={() => setLayoutMode('doc-focused')}
+              className={`px-2 py-0.5 rounded text-[11px] transition-all font-semibold ${layoutMode === 'doc-focused' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+              title={lang === 'vi' ? 'Ưu tiên Tài liệu' : 'Document Focus'}
+            >
+              {lang === 'vi' ? 'Tài liệu' : 'Doc'}
+            </button>
+            <button
+              onClick={() => setLayoutMode('timer-minimal')}
+              className={`px-2 py-0.5 rounded text-[11px] transition-all font-semibold ${layoutMode === 'timer-minimal' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+              title={lang === 'vi' ? 'Tối giản hẹn giờ' : 'Minimal Timer'}
+            >
+              {lang === 'vi' ? 'Tối giản' : 'Minimal'}
+            </button>
+          </div>
+
           <span className="text-xs font-semibold text-foreground bg-muted px-2.5 py-1 rounded-full border border-border">
             {lang === 'vi' ? `Chu kỳ ${currentCycle}/${config.totalCycles}` : `Cycle ${currentCycle}/${config.totalCycles}`}
           </span>
@@ -378,8 +437,13 @@ export default function FocusSessionPage() {
 
       <div className="flex flex-1 overflow-hidden">
         
-        {/* ─── LEFT TIMER PANEL (40%) ─── */}
-        <div className="w-2/5 border-r border-border flex flex-col justify-between p-6 bg-card overflow-y-auto">
+        {/* ─── LEFT TIMER PANEL ─── */}
+        <div className={`border-r border-border flex flex-col justify-between p-6 bg-card overflow-y-auto transition-all duration-300 ${
+          layoutMode === 'split' ? 'w-2/5' :
+          layoutMode === 'timer-focused' ? 'w-3/5' :
+          layoutMode === 'doc-focused' ? 'w-1/4' :
+          'hidden'
+        }`}>
           
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -397,9 +461,9 @@ export default function FocusSessionPage() {
               </Badge>
             </div>
 
-            {/* Pomodoro Timer Unit */}
+            {/* Pomodoro Timer Unit with inner controls */}
             <div className="flex-1 flex flex-col items-center justify-center min-h-75 mb-6">
-              <div className="relative w-64 h-64 mb-5">
+              <div className="relative w-64 h-64">
                 <svg className="w-full h-full focus-timer-ring" style={{ transform: 'rotate(-90deg)' }} viewBox="0 0 200 200">
                   <circle cx="100" cy="100" r="95" fill="none" stroke="#E5E7EB" strokeWidth="6" />
                   <circle
@@ -415,61 +479,58 @@ export default function FocusSessionPage() {
                     style={{ transition: 'stroke-dashoffset 1s linear' }}
                   />
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
+                <div className="absolute inset-0 flex flex-col items-center justify-center pt-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
                     {sessionType === 'work' ? (lang === 'vi' ? 'Học sâu' : 'Deep Work') : sessionType === 'short_break' ? (lang === 'vi' ? 'Nghỉ ngắn' : 'Short Break') : (lang === 'vi' ? 'Nghỉ dài' : 'Long Break')}
                   </span>
-                  <span className="text-4xl font-extrabold text-foreground font-mono leading-none tracking-tight">
+                  <span className="text-4xl font-extrabold text-foreground font-mono leading-none tracking-tight mb-3">
                     {formatTime(timeLeft)}
                   </span>
+                  
+                  {/* Timer Controls - Icons row directly below clock display */}
+                  <div className="flex items-center gap-3">
+                    {timerState === 'running' ? (
+                      <button
+                        onClick={() => setTimerState('paused')}
+                        className="p-1.5 rounded-full hover:bg-muted text-foreground transition-all duration-150 active:scale-95 cursor-pointer"
+                        title={lang === 'vi' ? 'Tạm dừng' : 'Pause'}
+                      >
+                        <Pause size={16} fill="currentColor" className="text-focus-session" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setTimerState('running')}
+                        className="p-1.5 rounded-full hover:bg-muted text-foreground transition-all duration-150 active:scale-95 animate-pulse cursor-pointer"
+                        title={lang === 'vi' ? 'Tiếp tục' : 'Resume'}
+                      >
+                        <Play size={16} fill="currentColor" className="text-focus-session" />
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setTimeLeft(config.workDuration * 60)
+                        setTimerState('paused')
+                      }}
+                      className="p-1.5 rounded-full hover:bg-muted text-foreground transition-all duration-150 active:scale-95 cursor-pointer"
+                      title={lang === 'vi' ? 'Đặt lại' : 'Reset'}
+                    >
+                      <RotateCcw size={16} className="text-muted-foreground hover:text-foreground" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setTempConfig({ ...config })
+                        setShowConfigModal(true)
+                      }}
+                      className="p-1.5 rounded-full hover:bg-muted text-foreground transition-all duration-150 active:scale-95 cursor-pointer"
+                      title={lang === 'vi' ? 'Cấu hình Pomodoro' : 'Configure Pomodoro'}
+                    >
+                      <Settings size={16} className="text-muted-foreground hover:text-foreground" />
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              {/* Timer Controls */}
-              <div className="flex items-center gap-3">
-                {timerState === 'running' ? (
-                  <Button
-                    onClick={() => setTimerState('paused')}
-                    size="sm"
-                    className="shadow-sm gap-1.5 focus-timer-button"
-                  >
-                    <Pause size={14} fill="currentColor" />
-                    {lang === 'vi' ? 'Tạm dừng' : 'Pause'}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => setTimerState('running')}
-                    size="sm"
-                    className="shadow-sm gap-1.5 focus-timer-button"
-                  >
-                    <Play size={14} fill="currentColor" />
-                    {lang === 'vi' ? 'Tiếp tục' : 'Resume'}
-                  </Button>
-                )}
-
-                <Button
-                  onClick={() => {
-                    setTimeLeft(config.workDuration * 60)
-                    setTimerState('paused')
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                >
-                  {lang === 'vi' ? 'Đặt lại' : 'Reset'}
-                </Button>
-              </div>
-
-              <button
-                onClick={() => {
-                  setTempConfig({ ...config })
-                  setShowConfigModal(true)
-                }}
-                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-focus-session mt-4 transition-colors font-medium"
-              >
-                <Settings size={13} />
-                {lang === 'vi' ? 'Cấu hình Pomodoro' : 'Configure Pomodoro'}
-              </button>
             </div>
 
             {/* Collapsible SRE Suggestions Panel */}
@@ -523,8 +584,13 @@ export default function FocusSessionPage() {
 
         </div>
 
-        {/* ─── RIGHT PANEL (60%) ─── */}
-        <div className="w-3/5 flex flex-col bg-background">
+        {/* ─── RIGHT PANEL ─── */}
+        <div className={`flex flex-col bg-background transition-all duration-300 ${
+          layoutMode === 'split' ? 'w-3/5' :
+          layoutMode === 'timer-focused' ? 'w-2/5' :
+          layoutMode === 'doc-focused' ? 'w-3/4' :
+          'w-full'
+        }`}>
           
           {/* Tab Selector bar */}
           <div className="flex border-b border-border px-6 bg-card shrink-0">
@@ -551,9 +617,33 @@ export default function FocusSessionPage() {
               <div className="prose max-w-none text-foreground space-y-6">
                 <div className="flex items-center gap-2 pb-4 border-b border-border">
                   <h2 className="text-xl font-bold m-0 text-foreground">{selectedConcept.name}</h2>
-                  <Badge variant="outline" className="text-xs">
-                    {lang === 'vi' ? 'Độ khó: 3/5' : 'Difficulty: 3/5'}
-                  </Badge>
+                  <div className="flex items-center gap-1.5 ml-2">
+                    <span className="text-xs text-muted-foreground shrink-0 font-medium">
+                      {lang === 'vi' ? 'Độ khó:' : 'Difficulty:'}
+                    </span>
+                    <div className="flex gap-0.5 w-12 h-1">
+                      {Array.from({ length: 5 }).map((_, i) => {
+                        const diff = selectedConcept.difficulty ?? 3
+                        const isActive = i < diff
+                        let colorClass = 'bg-zinc-200 dark:bg-zinc-700'
+                        if (isActive) {
+                          if (diff <= 2) {
+                            colorClass = 'bg-emerald-500'
+                          } else if (diff <= 4) {
+                            colorClass = 'bg-amber-500'
+                          } else {
+                            colorClass = 'bg-red-500'
+                          }
+                        }
+                        return (
+                          <div 
+                            key={i} 
+                            className={`h-full flex-1 rounded-full ${colorClass}`}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
                 
                 <section className="space-y-2">

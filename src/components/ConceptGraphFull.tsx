@@ -11,13 +11,16 @@ import ReactFlow, {
   NodeProps,
   useNodesState,
   useEdgesState,
+  Connection,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { X, Star, Mic, BookOpen } from 'lucide-react'
+import { X, Mic, BookOpen, Maximize2, Minimize2 } from 'lucide-react'
 import { getMasteryClass } from '@/types'
 import type { Concept } from '@/types'
 import '@/styles/concept-graph.css'
 import { usePlanStore } from '@/stores/planStore'
+import { useTranslation } from '@/stores/languageStore'
+import { getLayoutedElements } from '@/lib/graphUtils'
 
 // ─── Shared Mock Data ───────────────────────────────────────────
 export const mockConcepts: Concept[] = [
@@ -63,10 +66,10 @@ const getMasteryColor = (mastery: number | null): string => {
 }
 
 const getMasteryLabel = (mastery: number | null): string => {
-  if (mastery === null) return 'Chưa ôn'
-  if (mastery < 0.6) return 'Yếu'
-  if (mastery < 0.8) return 'Trung bình'
-  return 'Vững'
+  if (mastery === null) return 'Sẵn sàng học'
+  if (mastery < 0.6) return 'Cần củng cố'
+  if (mastery < 0.8) return 'Đang học'
+  return 'Đã vững'
 }
 
 type FilterType = 'all' | 'untested' | 'weak' | 'learning' | 'strong'
@@ -83,43 +86,41 @@ const filterLabels: Record<FilterType, string> = {
 function ConceptNodeFull({ data }: NodeProps) {
   const nodeClass = getMasteryClass(data.mastery, data.isRemediating)
   const dimClass = data.dimmed ? ' concept-node--dimmed' : ''
+  const isEditing = data.isEditing
 
   return (
     <div className={`concept-node ${nodeClass}${dimClass}`}>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0, width: 8, height: 8 }} />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        style={{ 
+          opacity: isEditing ? 0.85 : 0, 
+          width: 8, 
+          height: 8, 
+          backgroundColor: '#3B82F6', 
+          border: '2px solid #fff' 
+        }} 
+      />
       <div className="concept-node__name">{data.label}</div>
       <div className="concept-node__mastery">
         {data.mastery !== null ? `${Math.round(data.mastery * 100)}%` : 'Chưa ôn'}
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, width: 8, height: 8 }} />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        style={{ 
+          opacity: isEditing ? 0.85 : 0, 
+          width: 8, 
+          height: 8, 
+          backgroundColor: '#3B82F6', 
+          border: '2px solid #fff' 
+        }} 
+      />
     </div>
   )
 }
 
 const nodeTypes = { concept: ConceptNodeFull }
-
-// ─── Edge Builder ───────────────────────────────────────────────
-function buildEdges(concepts: Concept[]): Edge[] {
-  const edges: Edge[] = []
-  const conceptMap = new Map(concepts.map(c => [c.id, c]))
-
-  for (const concept of concepts) {
-    for (const prereqId of concept.prerequisites) {
-      const prereq = conceptMap.get(prereqId)
-      const isSourceWeak = prereq && prereq.mastery !== null && prereq.mastery < 0.6
-
-      edges.push({
-        id: `e${prereqId}-${concept.id}`,
-        source: prereqId,
-        target: concept.id,
-        animated: false,
-        className: isSourceWeak ? 'react-flow__edge--prerequisite-weak' : '',
-        style: isSourceWeak ? undefined : { stroke: '#9CA3AF', strokeWidth: 2 },
-      })
-    }
-  }
-  return edges
-}
 
 // ═══════════════════════════════════════════════════════════════
 // ConceptGraphFull (DB-02 Full Page)
@@ -130,7 +131,8 @@ interface ConceptGraphFullProps {
 
 export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFullProps) {
   const navigate = useNavigate()
-  const { concepts } = usePlanStore()
+  const { lang } = useTranslation()
+  const { concepts, updateConceptsAndEdges } = usePlanStore()
 
   const activeConcepts = concepts[planId] || mockConcepts
 
@@ -138,32 +140,23 @@ export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFull
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState<FilterType>('all')
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null)
-
-  // Build initial nodes
-  const createNodes = useCallback((conceptsList: Concept[]): Node[] => {
-    return conceptsList.map(concept => ({
-      id: concept.id,
-      type: 'concept',
-      data: {
-        label: concept.name,
-        mastery: concept.mastery,
-        isRemediating: concept.isRemediating,
-        dimmed: false,
-      },
-      position: nodePositions[concept.id] || { 
-        x: 100 + Math.random() * 200, 
-        y: 100 + Math.random() * 200 
-      },
-    }))
-  }, [])
-
+  const [isEditing, setIsEditing] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
   useEffect(() => {
-    setNodes(createNodes(activeConcepts))
-    setEdges(buildEdges(activeConcepts))
-  }, [activeConcepts, createNodes, setNodes, setEdges])
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(activeConcepts, false)
+    const nodesWithEditState = layoutedNodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        isEditing,
+      }
+    }))
+    setNodes(nodesWithEditState)
+    setEdges(layoutedEdges)
+  }, [activeConcepts, isEditing, setNodes, setEdges])
 
   // ─── Filter / Search Logic ──────────────────────────────────
   const matchesFilter = useCallback((concept: Concept): boolean => {
@@ -180,90 +173,230 @@ export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFull
     return name.toLowerCase().includes(searchQuery.toLowerCase())
   }, [searchQuery])
 
+  const selectedConcept = selectedConceptId
+    ? activeConcepts.find(c => c.id === selectedConceptId)
+    : null
+
   // Apply filter + search → dim non-matching nodes
   const applyFilters = useCallback(() => {
     setNodes(prev => prev.map(node => {
       const concept = activeConcepts.find(c => c.id === node.id)
       if (!concept) return node
       const isMatch = matchesFilter(concept) && matchesSearch(concept.name)
+
+      let isDimmed = !isMatch
+      if (selectedConceptId) {
+        const isSelected = node.id === selectedConceptId
+        const isPrereq = selectedConcept?.prerequisites.includes(node.id)
+        const isDependent = concept.prerequisites.includes(selectedConceptId)
+        
+        if (!isSelected && !isPrereq && !isDependent) {
+          isDimmed = true
+        }
+      }
+
       return {
         ...node,
-        data: { ...node.data, dimmed: !isMatch },
+        data: { 
+          ...node.data, 
+          dimmed: isDimmed,
+          isEditing,
+        },
       }
     }))
-  }, [matchesFilter, matchesSearch, activeConcepts, setNodes])
+  }, [matchesFilter, matchesSearch, activeConcepts, selectedConceptId, selectedConcept, isEditing, setNodes])
 
   // Re-apply whenever filter or search changes
   useMemo(() => {
     applyFilters()
   }, [applyFilters])
 
-  const handleClearFilters = () => {
-    setSearchQuery('')
-    setActiveFilter('all')
-  }
+  // Highlight/Dim edges based on selection
+  useEffect(() => {
+    setEdges(prev => prev.map(edge => {
+      if (!selectedConceptId) {
+        return {
+          ...edge,
+          style: {
+            ...edge.style,
+            opacity: 1,
+          }
+        }
+      }
+      const isRelated = edge.source === selectedConceptId || edge.target === selectedConceptId
+      return {
+        ...edge,
+        style: {
+          ...edge.style,
+          opacity: isRelated ? 1 : 0.08,
+        }
+      }
+    }))
+  }, [selectedConceptId, setEdges])
+
+  // ─── Drag to Connect & Edge Delete Handlers ─────────────────
+  const onConnect = useCallback((params: Connection) => {
+    const source = params.source
+    const target = params.target
+    if (!source || !target || source === target) return
+
+    // Quick cycle checker to prevent loops
+    const wouldCreateCycle = (src: string, tgt: string): boolean => {
+      const visited = new Set<string>()
+      const queue = [tgt]
+      while (queue.length > 0) {
+        const curr = queue.shift()!
+        if (curr === src) return true
+        visited.add(curr)
+        const nextNodes = activeConcepts.find(c => c.id === curr)?.prerequisites || []
+        for (const n of nextNodes) {
+          if (!visited.has(n)) {
+            queue.push(n)
+          }
+        }
+      }
+      return false
+    }
+
+    if (wouldCreateCycle(source, target)) {
+      alert(lang === 'vi' ? 'Không thể thêm liên kết vì sẽ tạo vòng lặp phụ thuộc!' : 'Cannot add connection: it would create a cyclic dependency!')
+      return
+    }
+
+    const updatedConcepts = activeConcepts.map(c => {
+      if (c.id === target) {
+        return {
+          ...c,
+          prerequisites: Array.from(new Set([...c.prerequisites, source]))
+        }
+      }
+      return c
+    })
+    updateConceptsAndEdges(planId, updatedConcepts)
+  }, [activeConcepts, updateConceptsAndEdges, planId, lang])
+
+  const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    if (!isEditing) return
+    const sourceNode = activeConcepts.find(c => c.id === edge.source)
+    const targetNode = activeConcepts.find(c => c.id === edge.target)
+    if (!sourceNode || !targetNode) return
+
+    if (window.confirm(lang === 'vi' 
+      ? `Xóa liên kết tiên quyết: ${sourceNode.name} -> ${targetNode.name}?` 
+      : `Delete prerequisite connection: ${sourceNode.name} -> ${targetNode.name}?`
+    )) {
+      const updatedConcepts = activeConcepts.map(c => {
+        if (c.id === edge.target) {
+          return {
+            ...c,
+            prerequisites: c.prerequisites.filter(pId => pId !== edge.source)
+          }
+        }
+        return c
+      })
+      updateConceptsAndEdges(planId, updatedConcepts)
+    }
+  }, [isEditing, activeConcepts, updateConceptsAndEdges, planId, lang])
 
   // ─── Node Click ─────────────────────────────────────────────
   const handleNodeClick = useCallback((_event: any, node: Node) => {
     setSelectedConceptId(node.id)
   }, [])
 
-  const selectedConcept = selectedConceptId
-    ? activeConcepts.find(c => c.id === selectedConceptId)
-    : null
-
   // Find dependents (concepts that have this as a prerequisite)
   const dependents = selectedConcept
     ? activeConcepts.filter(c => c.prerequisites.includes(selectedConcept.id))
     : []
 
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setActiveFilter('all')
+  }
+
   const hasActiveFilters = searchQuery.trim() !== '' || activeFilter !== 'all'
 
   return (
-    <div className="flex flex-col h-full">
+    <div 
+      className={isFullscreen ? "fixed inset-0 z-50 bg-background flex flex-col p-6 h-screen w-screen" : "flex flex-col h-full"}
+      style={isFullscreen ? { height: '100vh', width: '100vw' } : undefined}
+    >
       {/* ─── FILTER BAR (DB-05) ─── */}
-      <div className="cg-filter-bar">
-        <input
-          type="text"
-          placeholder="Tìm khái niệm..."
-          className="cg-filter-bar__search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="cg-filter-bar flex items-center justify-between gap-3 w-full">
+        <div className="flex items-center gap-3 flex-wrap flex-1">
+          <input
+            type="text"
+            placeholder="Tìm khái niệm..."
+            className="cg-filter-bar__search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
 
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {(Object.keys(filterLabels) as FilterType[]).map(key => (
-            <button
-              key={key}
-              className={`cg-filter-bar__chip ${activeFilter === key ? 'cg-filter-bar__chip--active' : ''}`}
-              onClick={() => setActiveFilter(key)}
-            >
-              {filterLabels[key]}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(Object.keys(filterLabels) as FilterType[]).map(key => (
+              <button
+                key={key}
+                className={`cg-filter-bar__chip ${activeFilter === key ? 'cg-filter-bar__chip--active' : ''}`}
+                onClick={() => setActiveFilter(key)}
+              >
+                {filterLabels[key]}
+              </button>
+            ))}
+          </div>
+
+          {hasActiveFilters && (
+            <button className="cg-filter-bar__clear" onClick={handleClearFilters}>
+              Xóa bộ lọc
             </button>
-          ))}
+          )}
+
+          {/* Edit Mode Switch */}
+          <div className="flex items-center gap-2 border-l border-border pl-3 ml-2">
+            <button
+              className={`toggle-switch ${isEditing ? 'toggle-switch--active' : ''}`}
+              onClick={() => {
+                const nextMode = !isEditing
+                setIsEditing(nextMode)
+                if (!nextMode) {
+                  setSelectedConceptId(null) // Hide details panel when exiting edit mode
+                }
+              }}
+              aria-label="Chỉnh sửa sơ đồ"
+            >
+              <div className="toggle-switch__thumb" />
+            </button>
+            <span className="text-xs font-medium text-foreground">
+              Chỉnh sửa sơ đồ
+            </span>
+          </div>
         </div>
 
-        {hasActiveFilters && (
-          <button className="cg-filter-bar__clear" onClick={handleClearFilters}>
-            Xóa bộ lọc
-          </button>
-        )}
+        {/* Fullscreen Button */}
+        <button
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className="p-1.5 hover:bg-muted rounded-lg transition-colors border border-border text-foreground ml-auto flex items-center gap-1.5"
+          title={isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+        >
+          {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          <span className="text-xs font-medium">{isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
+        </button>
       </div>
 
       {/* ─── GRAPH CANVAS ─── */}
-      <div className="flex-1 relative">
+      <div className="grow relative h-130 min-h-112.5">
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={handleNodeClick}
+          onEdgeClick={onEdgeClick}
+          onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
           fitViewOptions={{ padding: 0.3 }}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          edgesFocusable={false}
+          nodesDraggable={isEditing}
+          nodesConnectable={isEditing}
+          edgesFocusable={isEditing}
           elementsSelectable={true}
           panOnDrag={true}
           zoomOnScroll={true}
@@ -324,18 +457,26 @@ export default function ConceptGraphFull({ planId = 'plan-1' }: ConceptGraphFull
 
               {/* Difficulty */}
               <div className="cg-detail-panel__section-label">Độ khó</div>
-              <div className="flex gap-1 mb-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    size={14}
-                    className={
-                      i < selectedConcept.difficulty
-                        ? 'fill-amber-400 text-amber-400'
-                        : 'text-zinc-600'
+              <div className="flex items-center gap-1 mb-2 w-full max-w-45">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const isActive = i < selectedConcept.difficulty
+                  let colorClass = 'bg-zinc-200 dark:bg-zinc-700' // default empty grey
+                  if (isActive) {
+                    if (selectedConcept.difficulty <= 2) {
+                      colorClass = 'bg-emerald-500' // Green for easy (1-2)
+                    } else if (selectedConcept.difficulty <= 4) {
+                      colorClass = 'bg-amber-500' // Yellow/Orange for medium (3-4)
+                    } else {
+                      colorClass = 'bg-red-500' // Red for hard (5)
                     }
-                  />
-                ))}
+                  }
+                  return (
+                    <div 
+                      key={i} 
+                      className={`h-1.5 flex-1 rounded-full ${colorClass} transition-colors duration-200`}
+                    />
+                  )
+                })}
               </div>
 
               {/* Mastery History Sparkline */}

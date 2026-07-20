@@ -35,13 +35,13 @@ export class Concept implements ConceptData {
     const status = this.getStatus()
     switch (status) {
       case 'strong':
-        return 'Vững'
+        return 'Đã vững'
       case 'learning':
         return 'Đang học'
       case 'weak':
-        return 'Yếu'
+        return 'Cần củng cố'
       default:
-        return 'Chưa ôn'
+        return 'Sẵn sàng học'
     }
   }
 

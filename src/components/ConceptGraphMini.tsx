@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import ReactFlow, {
   Node,
-  Edge,
   Handle,
   Position,
   NodeProps,
@@ -11,16 +10,16 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { getMasteryClass } from '@/types'
-import { nodePositions } from '@/components/ConceptGraphFull'
+import { getLayoutedElements } from '@/lib/graphUtils'
 import { usePlanStore } from '@/stores/planStore'
 import '@/styles/concept-graph.css'
 
 // ─── Helpers ────────────────────────────────────────────────────
 const getMasteryLabel = (mastery: number | null): string => {
-  if (mastery === null) return 'Chưa ôn'
-  if (mastery < 0.6) return 'Yếu'
-  if (mastery < 0.8) return 'Trung bình'
-  return 'Vững'
+  if (mastery === null) return 'Sẵn sàng học'
+  if (mastery < 0.6) return 'Cần củng cố'
+  if (mastery < 0.8) return 'Đang học'
+  return 'Đã vững'
 }
 
 // ─── Custom Mini Node ───────────────────────────────────────────
@@ -29,12 +28,12 @@ function ConceptNodeMini({ data }: NodeProps) {
 
   return (
     <div className={`concept-node ${nodeClass}`} style={{ minWidth: 90, padding: '0.4rem 0.625rem' }}>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0, width: 6, height: 6 }} />
+      <Handle type="target" position={Position.Left} style={{ opacity: 0, width: 6, height: 6 }} />
       <div className="concept-node__name" style={{ fontSize: '0.625rem', maxWidth: 80 }}>{data.label}</div>
       <div className="concept-node__mastery" style={{ fontSize: '0.5rem' }}>
         {data.mastery !== null ? `${Math.round(data.mastery * 100)}%` : 'Chưa ôn'}
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, width: 6, height: 6 }} />
+      <Handle type="source" position={Position.Right} style={{ opacity: 0, width: 6, height: 6 }} />
     </div>
   )
 }
@@ -67,32 +66,9 @@ export default function ConceptGraphMini({ height = 280, planId }: ConceptGraphM
   const [edges, setEdges] = useEdgesState([])
 
   useEffect(() => {
-    const formattedNodes: Node[] = activeConcepts.map(concept => ({
-      id: concept.id,
-      type: 'concept',
-      data: {
-        label: concept.name,
-        mastery: concept.mastery,
-        isRemediating: concept.isRemediating,
-      },
-      position: nodePositions[concept.id] || { x: Math.random() * 200, y: Math.random() * 200 },
-    }))
-
-    const formattedEdges: Edge[] = []
-    for (const concept of activeConcepts) {
-      for (const prereqId of concept.prerequisites) {
-        formattedEdges.push({
-          id: `e${prereqId}-${concept.id}`,
-          source: prereqId,
-          target: concept.id,
-          animated: false,
-          style: { stroke: '#D1D5DB', strokeWidth: 1.5 },
-        })
-      }
-    }
-
-    setNodes(formattedNodes)
-    setEdges(formattedEdges)
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(activeConcepts, true)
+    setNodes(layoutedNodes)
+    setEdges(layoutedEdges)
   }, [activeConcepts, setNodes, setEdges])
 
   const handleNodeMouseEnter = useCallback((event: React.MouseEvent, node: Node) => {

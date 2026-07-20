@@ -11,11 +11,12 @@ import ReactFlow, {
   useReactFlow,
   Connection,
   MarkerType,
+  Position,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Upload, X, ZoomIn, ZoomOut, Maximize2, Plus, Trash2, Edit } from 'lucide-react'
+import { Upload, X, ZoomIn, ZoomOut, Maximize2, Minimize2, Plus, Trash2, BookOpen } from 'lucide-react'
 import { usePlanStore } from '@/stores/planStore'
 import { useTranslation } from '@/stores/languageStore'
 import { StudyPlan } from '@/models/StudyPlan'
@@ -40,30 +41,127 @@ const initialConcepts: Concept[] = [
   { id: '7', name: 'Scope', difficulty: 2, prerequisites: [], mastery: null },
 ]
 
-const initialNodes: Node[] = initialConcepts.map((concept, idx) => ({
-  id: concept.id,
-  data: { label: concept.name, difficulty: concept.difficulty },
-  position: {
-    x: (idx % 3) * 250 + 50,
-    y: Math.floor(idx / 3) * 150 + 50,
-  },
-  style: {
-    background: '#8B5CF6',
-    color: '#fff',
-    border: '2px solid #6D28D9',
-    borderRadius: '8px',
-    padding: '8px 12px',
-    fontSize: '13px',
-    fontWeight: '500',
-  },
-}))
+function getLayoutedNodes(conceptsList: Concept[]): Node[] {
+  const levels: Record<string, number> = {}
+  const conceptMap = new Map(conceptsList.map(c => [c.id, c]))
+
+  function getLevel(id: string, visited = new Set<string>()): number {
+    if (levels[id] !== undefined) return levels[id]
+    if (visited.has(id)) return 0
+    visited.add(id)
+
+    const concept = conceptMap.get(id)
+    if (!concept || !concept.prerequisites || concept.prerequisites.length === 0) {
+      levels[id] = 0
+      return 0
+    }
+
+    let maxPrereqLevel = -1
+    for (const prereqId of concept.prerequisites) {
+      maxPrereqLevel = Math.max(maxPrereqLevel, getLevel(prereqId, visited))
+    }
+    levels[id] = maxPrereqLevel + 1
+    return levels[id]
+  }
+
+  for (const concept of conceptsList) {
+    getLevel(concept.id)
+  }
+
+  const levelGroups: Record<number, string[]> = {}
+  for (const concept of conceptsList) {
+    const lvl = levels[concept.id] || 0
+    if (!levelGroups[lvl]) {
+      levelGroups[lvl] = []
+    }
+    levelGroups[lvl].push(concept.id)
+  }
+
+  const horizontalSpacing = 260
+  const verticalSpacing = 130
+  const positions: Record<string, { x: number; y: number }> = {}
+  const levelKeys = Object.keys(levelGroups).map(Number).sort((a, b) => a - b)
+
+  for (const lvl of levelKeys) {
+    const ids = levelGroups[lvl]
+    const count = ids.length
+    const x = lvl * horizontalSpacing + 60
+
+    ids.forEach((id, index) => {
+      const y = (index - (count - 1) / 2) * verticalSpacing + 200
+      positions[id] = { x, y }
+    })
+  }
+
+  return conceptsList.map(concept => {
+    const pos = positions[concept.id] || { x: 60, y: 150 }
+    return {
+      id: concept.id,
+      data: { label: concept.name, difficulty: concept.difficulty },
+      position: pos,
+      targetPosition: Position.Left,
+      sourcePosition: Position.Right,
+      style: {
+        background: '#8B5CF6',
+        color: '#fff',
+        border: '2px solid #6D28D9',
+        borderRadius: '8px',
+        padding: '8px 12px',
+        fontSize: '13px',
+        fontWeight: '500',
+      },
+    }
+  })
+}
+
+const initialNodes: Node[] = getLayoutedNodes(initialConcepts)
 
 const initialEdges: Edge[] = [
-  { id: 'e1-2', source: '1', target: '2', markerEnd: { type: MarkerType.ArrowClosed } },
-  { id: 'e1-3', source: '1', target: '3', markerEnd: { type: MarkerType.ArrowClosed } },
-  { id: 'e1-4', source: '1', target: '4', markerEnd: { type: MarkerType.ArrowClosed } },
-  { id: 'e4-5', source: '4', target: '5', markerEnd: { type: MarkerType.ArrowClosed } },
-  { id: 'e5-6', source: '5', target: '6', markerEnd: { type: MarkerType.ArrowClosed } },
+  { 
+    id: 'e1-2', 
+    source: '1', 
+    target: '2', 
+    type: 'smoothstep',
+    pathOptions: { borderRadius: 10 },
+    style: { stroke: '#111827', strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+  },
+  { 
+    id: 'e1-3', 
+    source: '1', 
+    target: '3', 
+    type: 'smoothstep',
+    pathOptions: { borderRadius: 10 },
+    style: { stroke: '#111827', strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+  },
+  { 
+    id: 'e1-4', 
+    source: '1', 
+    target: '4', 
+    type: 'smoothstep',
+    pathOptions: { borderRadius: 10 },
+    style: { stroke: '#111827', strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+  },
+  { 
+    id: 'e4-5', 
+    source: '4', 
+    target: '5', 
+    type: 'smoothstep',
+    pathOptions: { borderRadius: 10 },
+    style: { stroke: '#111827', strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+  },
+  { 
+    id: 'e5-6', 
+    source: '5', 
+    target: '6', 
+    type: 'smoothstep',
+    pathOptions: { borderRadius: 10 },
+    style: { stroke: '#111827', strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+  },
 ]
 
 function hasCycle(nodes: Node[], edges: Edge[]): boolean {
@@ -130,8 +228,9 @@ function GraphEditor({
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   const { lang } = useTranslation()
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   
-  const selectedConcept = concepts.find(c => c.id === selectedConceptId)
+
 
   // ReactFlow Connect edge handler
   const onConnect = (connection: Connection) => {
@@ -140,33 +239,44 @@ function GraphEditor({
     if (!source || !target || source === target) return
 
     const newEdgeId = `e${source}-${target}`
-    const tempEdges: Edge[] = [...edges, { id: newEdgeId, source, target, markerEnd: { type: MarkerType.ArrowClosed } }]
+    const tempEdges: Edge[] = [
+      ...edges, 
+      { 
+        id: newEdgeId, 
+        source, 
+        target, 
+        type: 'smoothstep',
+        pathOptions: { borderRadius: 10 },
+        style: { stroke: '#111827', strokeWidth: 2.5 },
+        markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' } 
+      }
+    ]
 
     if (hasCycle(nodes, tempEdges)) {
       alert(lang === 'vi' ? 'Không thể thêm liên kết tiên quyết này vì sẽ tạo ra chu trình vòng lặp (Cycle)!' : 'Cannot add this prerequisite connection as it would create a cyclic dependency!')
       return
     }
 
-    setConcepts((prev) =>
-      prev.map((c) =>
-        c.id === target
-          ? { ...c, prerequisites: Array.from(new Set([...c.prerequisites, source])) }
-          : c
-      )
+    const updatedConcepts = concepts.map((c) =>
+      c.id === target
+        ? { ...c, prerequisites: Array.from(new Set([...c.prerequisites, source])) }
+        : c
     )
+    setConcepts(updatedConcepts)
+    setNodes(getLayoutedNodes(updatedConcepts))
   }
 
   const onEdgeClick = (_event: any, edge: Edge) => {
     const sourceNodeName = nodes.find(n => n.id === edge.source)?.data.label || edge.source
     const targetNodeName = nodes.find(n => n.id === edge.target)?.data.label || edge.target
     if (window.confirm(lang === 'vi' ? `Xóa quan hệ tiên quyết: ${sourceNodeName} → ${targetNodeName}?` : `Delete prerequisite relationship: ${sourceNodeName} → ${targetNodeName}?`)) {
-      setConcepts((prev) =>
-        prev.map((c) =>
-          c.id === edge.target
-            ? { ...c, prerequisites: c.prerequisites.filter((pId) => pId !== edge.source) }
-            : c
-        )
+      const updatedConcepts = concepts.map((c) =>
+        c.id === edge.target
+          ? { ...c, prerequisites: c.prerequisites.filter((pId) => pId !== edge.source) }
+          : c
       )
+      setConcepts(updatedConcepts)
+      setNodes(getLayoutedNodes(updatedConcepts))
     }
   }
 
@@ -179,38 +289,22 @@ function GraphEditor({
       prerequisites: [],
       mastery: null,
     }
-    setConcepts((prev) => [...prev, newConcept])
-    setNodes((prev) => [
-      ...prev,
-      {
-        id: newId,
-        data: { label: newConcept.name, difficulty: newConcept.difficulty },
-        position: { x: 150 + Math.random() * 100, y: 150 + Math.random() * 100 },
-        style: {
-          background: '#8B5CF6',
-          color: '#fff',
-          border: '2px solid #6D28D9',
-          borderRadius: '8px',
-          padding: '8px 12px',
-          fontSize: '13px',
-          fontWeight: '500',
-        },
-      },
-    ])
+    const updatedConcepts = [...concepts, newConcept]
+    setConcepts(updatedConcepts)
+    setNodes(getLayoutedNodes(updatedConcepts))
     setSelectedConceptId(newId)
   }
 
   const handleDeleteConcept = (conceptId: string) => {
     if (window.confirm(lang === 'vi' ? 'Bạn có chắc chắn muốn xóa khái niệm này khỏi đồ thị?' : 'Are you sure you want to delete this concept from the graph?')) {
-      setConcepts((prev) =>
-        prev
-          .filter((c) => c.id !== conceptId)
-          .map((c) => ({
-            ...c,
-            prerequisites: c.prerequisites.filter((pId) => pId !== conceptId),
-          }))
-      )
-      setNodes((prev) => prev.filter((n) => n.id !== conceptId))
+      const updatedConcepts = concepts
+        .filter((c) => c.id !== conceptId)
+        .map((c) => ({
+          ...c,
+          prerequisites: c.prerequisites.filter((pId) => pId !== conceptId),
+        }))
+      setConcepts(updatedConcepts)
+      setNodes(getLayoutedNodes(updatedConcepts))
       setSelectedConceptId(null)
     }
   }
@@ -242,9 +336,9 @@ function GraphEditor({
   }
 
   return (
-    <div className="space-y-4">
+    <div className={isFullscreen ? "fixed inset-0 z-50 h-screen w-screen bg-background p-6 flex flex-col space-y-4 overflow-hidden" : "space-y-4"}>
       {/* Toolbar */}
-      <div className="flex justify-between items-center bg-surface p-3 rounded-lg border border-border flex-wrap gap-2">
+      <div className="flex justify-between items-center bg-surface p-3 rounded-lg border border-border flex-wrap gap-2 shrink-0">
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => zoomIn()}>
             <ZoomIn className="w-4 h-4" />
@@ -253,7 +347,10 @@ function GraphEditor({
             <ZoomOut className="w-4 h-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => fitView()}>
-            <Maximize2 className="w-4 h-4" />
+            <BookOpen className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsFullscreen(!isFullscreen)}>
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </Button>
         </div>
         
@@ -263,18 +360,20 @@ function GraphEditor({
       </div>
 
       {/* Instruction Banner */}
-      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-text-primary">
-        {lang === 'vi' ? (
-          <>👉 <b>Mẹo chỉnh sửa:</b> Kéo từ viền node A đến node B để thêm quan hệ (A tiên quyết của B). Click chọn cạnh nối để XÓA liên kết. Click node để đổi tên/độ khó.</>
-        ) : (
-          <>👉 <b>Edit Tip:</b> Drag from boundary of node A to B to add a prerequisite link (A is prereq of B). Click a connection edge to DELETE it. Click a node to rename/set difficulty.</>
-        )}
-      </div>
+      {!isFullscreen && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-text-primary shrink-0">
+          {lang === 'vi' ? (
+            <>👉 <b>Mẹo chỉnh sửa:</b> Kéo từ viền node A đến node B để thêm quan hệ (A tiên quyết của B). Click chọn cạnh nối để XÓA liên kết. Click node để đổi tên/độ khó.</>
+          ) : (
+            <>👉 <b>Edit Tip:</b> Drag from boundary of node A to B to add a prerequisite link (A is prereq of B). Click a connection edge to DELETE it. Click a node to rename/set difficulty.</>
+          )}
+        </div>
+      )}
 
       {/* Graph with Sidebar */}
-      <div className="flex flex-col md:flex-row gap-4 bg-card rounded-lg border border-border overflow-hidden" style={{ height: '550px' }}>
+      <div className={`flex flex-col md:flex-row gap-4 bg-card rounded-lg border border-border overflow-hidden ${isFullscreen ? 'flex-1 min-h-0' : ''}`} style={{ height: isFullscreen ? 'auto' : '550px' }}>
         {/* Flow Graph */}
-        <div className="flex-1 relative bg-background h-87.5 md:h-full">
+        <div className="flex-1 relative bg-background h-full w-full">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -283,145 +382,153 @@ function GraphEditor({
             onConnect={onConnect}
             onEdgeClick={onEdgeClick}
             onNodeClick={(_e, node) => setSelectedConceptId(node.id)}
+            onPaneClick={() => setSelectedConceptId(null)}
           >
             <Background />
-            <Controls />
+            <Controls showInteractive={false} style={{ display: 'none' }} />
           </ReactFlow>
         </div>
 
-        {/* Dynamic Sidebar */}
-        <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-border bg-surface overflow-y-auto p-4 flex flex-col">
-          {selectedConcept ? (
-            <div className="space-y-4 flex-1">
-              <div className="flex items-center justify-between border-b border-border pb-2">
+        {/* Dynamic Sidebar - Only visible when selectedConceptId is set */}
+        {selectedConceptId && (() => {
+          const concept = concepts.find(c => c.id === selectedConceptId)
+          if (!concept) return null
+          
+          return (
+            <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-border bg-surface overflow-y-auto p-4 flex flex-col shrink-0 animate-in slide-in-from-right duration-200">
+              <div className="flex items-center justify-between border-b border-border pb-2 mb-4">
                 <h3 className="font-bold text-sm text-text-primary flex items-center gap-1.5">
-                  <Edit size={14} /> {lang === 'vi' ? 'Sửa khái niệm' : 'Edit Concept'}
+                  {lang === 'vi' ? 'Sửa khái niệm' : 'Edit Concept'}
                 </h3>
                 <button onClick={() => setSelectedConceptId(null)} className="text-text-light hover:text-text-primary">
                   <X size={16} />
                 </button>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">{lang === 'vi' ? 'Tên khái niệm' : 'Concept Name'}</label>
-                <Input
-                  type="text"
-                  value={selectedConcept.name}
-                  onChange={(e) => handleUpdateConceptName(e.target.value)}
-                />
-              </div>
+              <div className="space-y-4 text-xs">
+                {/* Name input */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-text-secondary mb-1">
+                    {lang === 'vi' ? 'Tên khái niệm' : 'Concept Name'}
+                  </label>
+                  <Input
+                    type="text"
+                    value={concept.name}
+                    onChange={(e) => handleUpdateConceptName(e.target.value)}
+                    className="w-full text-xs h-8"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">{lang === 'vi' ? 'Độ khó (1-5)' : 'Difficulty (1-5)'}</label>
-                <select
-                  value={selectedConcept.difficulty}
-                  onChange={(e) => handleUpdateConceptDifficulty(Number(e.target.value))}
-                  className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  {[1, 2, 3, 4, 5].map(d => (
-                    <option key={d} value={d}>{d}/5</option>
-                  ))}
-                </select>
-              </div>
+                {/* Difficulty Select */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-text-secondary mb-1">
+                    {lang === 'vi' ? 'Độ khó' : 'Difficulty'}
+                  </label>
+                  <select
+                    value={concept.difficulty}
+                    onChange={(e) => handleUpdateConceptDifficulty(Number(e.target.value))}
+                    className="w-full bg-background border border-border rounded px-2 py-1 text-xs text-text-primary outline-none focus:ring-1 focus:ring-primary h-8"
+                  >
+                    {[1, 2, 3, 4, 5].map((d) => (
+                      <option key={d} value={d}>
+                        {d} - {d <= 2 ? (lang === 'vi' ? 'Dễ' : 'Easy') : d <= 4 ? (lang === 'vi' ? 'Trung bình' : 'Medium') : (lang === 'vi' ? 'Khó' : 'Hard')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">{lang === 'vi' ? 'Quan hệ tiên quyết trực tiếp' : 'Direct Prerequisites'}</label>
-                <div className="max-h-36 overflow-y-auto border border-border rounded bg-background p-2.5 space-y-1.5">
-                  {concepts
-                    .filter(c => c.id !== selectedConceptId)
-                    .map(c => {
-                      const isPrereq = selectedConcept.prerequisites.includes(c.id)
-                      return (
-                        <label key={c.id} className="flex items-center gap-2 text-xs text-text-primary cursor-pointer">
-                          <input
-                             type="checkbox"
-                             checked={isPrereq}
-                             onChange={(e) => {
-                               const checked = e.target.checked
-                               if (checked) {
-                                 // Add prereq with DAG validation
-                                 const targetId = selectedConceptId as string
-                                 const tempEdges: Edge[] = [...edges, { id: `e${c.id}-${targetId}`, source: c.id, target: targetId }]
-                                 if (hasCycle(nodes, tempEdges)) {
-                                   alert(lang === 'vi' ? 'Không thể thêm liên kết này vì tạo thành chu trình vòng lặp!' : 'Cannot add this dependency as it would create a circular dependency!')
-                                   return
-                                 }
-                                 setConcepts(prev => prev.map(item => 
-                                   item.id === selectedConceptId 
-                                     ? { ...item, prerequisites: [...item.prerequisites, c.id] } 
-                                     : item
-                                 ))
-                               } else {
-                                 // Remove prereq
-                                 setConcepts(prev => prev.map(item => 
-                                   item.id === selectedConceptId 
-                                     ? { ...item, prerequisites: item.prerequisites.filter(pId => pId !== c.id) } 
-                                     : item
-                                 ))
-                               }
-                             }}
-                             className="w-3.5 h-3.5 rounded text-primary"
-                          />
-                          <span>{c.name}</span>
-                        </label>
-                      )
-                    })}
+                {/* Prerequisite Checkboxes */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-text-secondary mb-1">
+                    {lang === 'vi' ? 'Quan hệ tiên quyết trực tiếp' : 'Direct Prerequisites'}
+                  </label>
+                  <div className="max-h-48 overflow-y-auto border border-border/80 rounded bg-background p-2 space-y-1">
+                    {concepts
+                      .filter(c => c.id !== concept.id)
+                      .map(c => {
+                        const isPrereq = concept.prerequisites.includes(c.id)
+                        return (
+                          <label key={c.id} className="flex items-center gap-2 text-xs text-text-primary cursor-pointer hover:bg-muted/40 p-0.5 rounded">
+                            <input
+                              type="checkbox"
+                              checked={isPrereq}
+                              onChange={(e) => {
+                                const checked = e.target.checked
+                                let updatedPrereqs = [...concept.prerequisites]
+                                if (checked) {
+                                  updatedPrereqs.push(c.id)
+                                } else {
+                                  updatedPrereqs = updatedPrereqs.filter(pId => pId !== c.id)
+                                }
+                                
+                                // Cycle check before applying
+                                const tempEdges: Edge[] = []
+                                concepts.forEach((comp) => {
+                                  const prereqs = comp.id === concept.id ? updatedPrereqs : comp.prerequisites
+                                  prereqs.forEach((pId) => {
+                                    tempEdges.push({ id: `e${pId}-${comp.id}`, source: pId, target: comp.id })
+                                  })
+                                })
+
+                                if (checked && hasCycle(nodes, tempEdges)) {
+                                  alert(lang === 'vi' ? 'Không thể thêm liên kết tiên quyết vì sẽ tạo vòng lặp!' : 'Cannot add connection: it would create a cyclic dependency!')
+                                  return
+                                }
+
+                                const updatedConcepts = concepts.map((comp) =>
+                                  comp.id === concept.id ? { ...comp, prerequisites: updatedPrereqs } : comp
+                                )
+                                setConcepts(updatedConcepts)
+                                setNodes(getLayoutedNodes(updatedConcepts))
+                              }}
+                              className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                            />
+                            <span className="truncate">{c.name}</span>
+                          </label>
+                        )
+                      })}
+                  </div>
+                </div>
+
+                {/* Delete Button */}
+                <div className="pt-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full h-8 flex items-center justify-center gap-1 text-[11px]"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteConcept(concept.id)
+                    }}
+                  >
+                    <Trash2 size={12} />
+                    {lang === 'vi' ? 'Xóa khái niệm' : 'Delete Concept'}
+                  </Button>
                 </div>
               </div>
-
-              <div className="pt-4 border-t border-border mt-auto">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="w-full gap-1.5"
-                  onClick={() => handleDeleteConcept(selectedConcept.id)}
-                >
-                  <Trash2 size={14} /> {lang === 'vi' ? 'Xóa khái niệm' : 'Delete Concept'}
-                </Button>
-              </div>
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col">
-              <h3 className="font-semibold text-text-primary mb-3 text-sm">
-                {lang === 'vi' ? `Danh sách khái niệm (${concepts.length})` : `Concept List (${concepts.length})`}
-              </h3>
-              <div className="space-y-2 overflow-y-auto flex-1 max-h-95 pr-1">
-                {concepts.map((concept) => (
-                  <div
-                    key={concept.id}
-                    onClick={() => setSelectedConceptId(concept.id)}
-                    className="p-3 bg-card rounded border border-border text-sm hover:shadow-sm transition-shadow cursor-pointer hover:border-primary/60 flex items-center justify-between"
-                  >
-                    <span className="text-text-primary font-medium truncate mr-2">
-                      {concept.name}
-                    </span>
-                    <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-xs font-semibold shrink-0">
-                      {lang === 'vi' ? `Độ khó: ${concept.difficulty}/5` : `Difficulty: ${concept.difficulty}/5`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+          )
+        })()}
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="flex gap-3 justify-between pt-4">
-        <Button
-          variant="outline"
-          onClick={() => setStep(1)}
-          className="gap-2"
-        >
-          <span>←</span> {lang === 'vi' ? 'Làm lại' : 'Redo'}
-        </Button>
-        <Button
-          onClick={onConfirmPlan}
-          className="gap-2"
-        >
-          {lang === 'vi' ? 'Xác nhận & Tạo kế hoạch' : 'Confirm & Create Plan'}
-        </Button>
-      </div>
+      {!isFullscreen && (
+        <div className="flex gap-3 justify-between pt-4 shrink-0">
+          <Button
+            variant="outline"
+            onClick={() => setStep(1)}
+            className="gap-2"
+          >
+            <span>←</span> {lang === 'vi' ? 'Làm lại' : 'Redo'}
+          </Button>
+          <Button
+            onClick={onConfirmPlan}
+            className="gap-2"
+          >
+            {lang === 'vi' ? 'Xác nhận & Tạo kế hoạch' : 'Confirm & Create Plan'}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -467,7 +574,15 @@ export default function CreatePlanPage() {
           id: `e${pId}-${c.id}`,
           source: pId,
           target: c.id,
-          markerEnd: { type: MarkerType.ArrowClosed },
+          type: 'smoothstep',
+          pathOptions: { borderRadius: 10 },
+          style: { stroke: '#111827', strokeWidth: 2.5 },
+          markerEnd: { 
+            type: MarkerType.Arrow, 
+            width: 14, 
+            height: 14, 
+            color: '#111827' 
+          },
         })
       })
     })

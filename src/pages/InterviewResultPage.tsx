@@ -295,9 +295,9 @@ export default function InterviewResultPage() {
   }
 
   const getMasteryLabel = (score: number): string => {
-    if (score >= 7.0) return lang === 'vi' ? 'Vững' : 'Strong'
-    if (score >= 4.0) return lang === 'vi' ? 'Trung bình' : 'Medium'
-    return lang === 'vi' ? 'Yếu' : 'Weak'
+    if (score >= 7.0) return lang === 'vi' ? 'Đã vững' : 'Strong'
+    if (score >= 4.0) return lang === 'vi' ? 'Đang học' : 'Medium'
+    return lang === 'vi' ? 'Cần củng cố' : 'Review Focus'
   }
 
   // Summary math

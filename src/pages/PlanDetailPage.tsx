@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Calendar,
   Upload,
-  AlertTriangle,
 } from 'lucide-react'
 import '@/styles/plan-detail.css'
 import { Concept } from '@/models/Concept'
@@ -198,7 +197,7 @@ export default function PlanDetailPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="graph">{lang === 'vi' ? 'Đồ thị Khái niệm' : 'Concept Graph'}</TabsTrigger>
           <TabsTrigger value="schedule">{lang === 'vi' ? 'Lịch Ôn tập' : 'Review Schedule'}</TabsTrigger>
-          <TabsTrigger value="settings">{lang === 'vi' ? 'Cài đặt' : 'Settings'}</TabsTrigger>
+          <TabsTrigger value="settings">{lang === 'vi' ? 'Cập nhật tài liệu' : 'Update Document'}</TabsTrigger>
         </TabsList>
 
         {/* ─── TAB 1: Concept Graph ─── */}
@@ -373,15 +372,6 @@ export default function PlanDetailPage() {
 
           {/* Danger Zone */}
           <div className="settings-section settings-danger">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertTriangle size={18} className="text-[rgb(239_68_68)]" />
-              <h3 className="text-base font-semibold text-[rgb(239_68_68)]">
-                {lang === 'vi' ? 'Khu vực nguy hiểm' : 'Danger Zone'}
-              </h3>
-            </div>
-            <p className="text-sm text-[rgb(156_163_175)] mb-4">
-              {lang === 'vi' ? 'Đặt lại tất cả tiến độ học tập. Hành động này không thể hoàn tác.' : 'Reset all study progress. This action cannot be undone.'}
-            </p>
             <Button
               variant="destructive"
               onClick={() => setShowResetDialog(true)}

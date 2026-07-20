@@ -102,8 +102,17 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   activePlan: mockPlans[0],
   concepts: {
     'plan-1': defaultConceptsPlan1,
-    'plan-2': defaultConceptsPlan1.map(c => ({ ...c, id: `p2-${c.id}` })),
-    'plan-3': defaultConceptsPlan1.map(c => ({ ...c, id: `p3-${c.id}`, mastery: null })),
+    'plan-2': defaultConceptsPlan1.map(c => ({
+      ...c,
+      id: `p2-${c.id}`,
+      prerequisites: c.prerequisites.map(pId => `p2-${pId}`),
+    })),
+    'plan-3': defaultConceptsPlan1.map(c => ({
+      ...c,
+      id: `p3-${c.id}`,
+      mastery: null,
+      prerequisites: c.prerequisites.map(pId => `p3-${pId}`),
+    })),
   },
   schedules: {
     'plan-1': defaultSchedulePlan1,
