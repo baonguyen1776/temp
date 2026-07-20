@@ -66,66 +66,76 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-bg flex items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-sm bg-card rounded-xl border border-border p-8 relative z-10">
+    <div className="relative min-h-screen flex items-center justify-center p-4 bg-background rule-blueprint overflow-hidden">
+      {/* Background Subtle Gradient Glow */}
+      <div className="absolute w-125 h-125 bg-primary/5 rounded-full blur-3xl pointer-events-none -top-40 -left-40" />
+
+      <div className="w-full max-w-sm hallmark-card p-8 relative z-10 shadow-lg border-border/80">
         {/* Logo and Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <h1 className="text-2xl font-bold text-foreground font-sans">Recall</h1>
-            <div className="w-2 h-2 rounded-full bg-primary"></div>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground font-mono font-bold text-lg mb-3 shadow-xs">
+            R
           </div>
-          <p className="text-sm text-muted-foreground">Ôn tập thông minh hơn mỗi ngày</p>
+          <span className="micro-type text-primary block mb-1">AUTH PORTAL</span>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Recall AI</h1>
+          <p className="text-xs text-muted-foreground mt-1">Ôn tập & Ghi nhớ kiến thức hiệu quả</p>
         </div>
 
         {/* Form */}
         <div className="space-y-4">
           {/* Email Input */}
-          <Input
-            type="email"
-            placeholder="Email của bạn"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value)
-              if (error) setError('')
-            }}
-            onKeyPress={handleKeyPress}
-            className={error ? 'border-destructive' : ''}
-            aria-label="Email"
-          />
-
-          {/* Password Input with Toggle */}
-          <div className="relative">
+          <div className="space-y-1">
+            <label className="micro-type text-[10px] text-muted-foreground block">EMAIL ADDRESS</label>
             <Input
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Mật khẩu"
-              value={password}
+              type="email"
+              placeholder="name@example.com"
+              value={email}
               onChange={(e) => {
-                setPassword(e.target.value)
+                setEmail(e.target.value)
                 if (error) setError('')
               }}
               onKeyPress={handleKeyPress}
-              className={error ? 'border-destructive pr-10' : 'pr-10'}
-              aria-label="Mật khẩu"
+              className={error ? 'border-destructive' : ''}
+              aria-label="Email"
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              tabIndex={-1}
-              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
-            >
-              {showPassword ? (
-                <EyeOff size={18} />
-              ) : (
-                <Eye size={18} />
-              )}
-            </button>
+          </div>
+
+          {/* Password Input with Toggle */}
+          <div className="space-y-1">
+            <label className="micro-type text-[10px] text-muted-foreground block">PASSWORD</label>
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  if (error) setError('')
+                }}
+                onKeyPress={handleKeyPress}
+                className={error ? 'border-destructive pr-10' : 'pr-10'}
+                aria-label="Mật khẩu"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+              >
+                {showPassword ? (
+                  <EyeOff size={16} />
+                ) : (
+                  <Eye size={16} />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Error Message */}
           {error && (
-            <p className="text-sm text-destructive" role="alert" aria-live="polite">
-              {error}
+            <p className="text-xs font-mono text-destructive" role="alert" aria-live="polite">
+              ⚠ {error}
             </p>
           )}
 
@@ -133,52 +143,49 @@ export default function LoginPage() {
           <Button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full"
+            className="w-full font-medium"
           >
             {loading ? (
               <>
                 <Loader2 className="animate-spin" />
-                Đang đăng nhập...
+                Đang xác thực...
               </>
             ) : (
-              'Đăng nhập'
+              'Đăng nhập →'
             )}
           </Button>
 
           {/* Divider */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 py-1">
             <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">hoặc</span>
+            <span className="micro-type text-[9px] text-muted-foreground">OR</span>
             <Separator className="flex-1" />
           </div>
 
-          {/* Google Login Button */}
+          {/* Social Login Button */}
           <Button
+            type="button"
             variant="outline"
             onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full"
+            className="w-full text-xs font-normal"
           >
             <GoogleIcon />
-            Tiếp tục với Google
+            Đăng nhập với Google
           </Button>
+        </div>
 
-          {/* Footer Links */}
-          <div className="space-y-3 text-center">
-            <a href="#" className="block text-sm text-primary hover:underline">
-              Quên mật khẩu?
-            </a>
-            <p className="text-sm text-muted-foreground">
-              Chưa có tài khoản?{' '}
-              <button
-                type="button"
-                onClick={() => navigate('/register')}
-                className="text-primary hover:underline font-medium"
-              >
-                Đăng ký
-              </button>
-            </p>
-          </div>
+        {/* Footer Links */}
+        <div className="mt-6 text-center text-xs text-muted-foreground space-y-2 pt-4 border-t border-border/50">
+          <p>
+            Chưa có tài khoản?{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/register')}
+              className="text-primary font-medium hover:underline cursor-pointer"
+            >
+              Đăng ký ngay
+            </button>
+          </p>
         </div>
       </div>
     </div>

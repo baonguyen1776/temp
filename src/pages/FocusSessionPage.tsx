@@ -5,7 +5,6 @@ import {
   Play,
   X,
   Settings,
-  BookOpen,
   FileText,
   MessageSquare,
   Save,
@@ -351,23 +350,25 @@ export default function FocusSessionPage() {
     <div className={`flex flex-col h-screen overflow-hidden session-type-transition ${isBreakActive ? 'focus-container-break' : 'focus-container-work'}`}>
       
       {/* ─── TOPBAR ─── */}
-      <div className="h-16 border-b border-border flex items-center justify-between px-6 bg-card z-20 shrink-0">
+      <div className="h-14 border-b border-border flex items-center justify-between px-5 bg-card z-20 shrink-0">
         <div className="flex items-center gap-3">
-          <BookOpen className="text-focus-session" size={20} />
+          <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+            HUD
+          </div>
           <div>
-            <h1 className="text-sm font-semibold text-foreground">{currentPlan?.name || 'JavaScript Advanced'}</h1>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              {lang === 'vi' ? 'Phiên học tập Recall AI' : 'Recall AI Study Session'}
+            <h1 className="text-sm font-semibold text-foreground tracking-tight">{currentPlan?.name || 'JavaScript Advanced'}</h1>
+            <p className="text-xs text-muted-foreground font-medium">
+              {lang === 'vi' ? 'Phiên học tập Recall AI' : 'Recall AI Focus Session'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Mini Timer when minimalist mode is active */}
           {layoutMode === 'timer-minimal' && (
-            <div className="flex items-center gap-3 bg-focus-session/15 border border-focus-session/20 rounded-full px-3 py-1 text-xs font-semibold animate-in fade-in duration-200">
-              <span className="font-mono text-foreground">{formatTime(timeLeft)}</span>
-              <span className="text-[9px] text-(--color-focus-session) font-bold uppercase tracking-wider">
+            <div className="flex items-center gap-2.5 bg-primary/10 border border-primary/20 rounded-full px-3 py-1 text-xs font-semibold animate-in fade-in duration-200">
+              <span className="tabular-nums font-mono text-foreground font-bold">{formatTime(timeLeft)}</span>
+              <span className="text-xs font-semibold text-primary">
                 {sessionType === 'work' ? (lang === 'vi' ? 'Học' : 'Work') : (lang === 'vi' ? 'Nghỉ' : 'Break')}
               </span>
               <div className="flex items-center gap-1.5 border-l border-border pl-2">
@@ -391,46 +392,46 @@ export default function FocusSessionPage() {
           <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md border border-border text-xs shrink-0">
             <button
               onClick={() => setLayoutMode('split')}
-              className={`px-2 py-0.5 rounded text-[11px] transition-all font-semibold ${layoutMode === 'split' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${layoutMode === 'split' ? 'bg-card text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
               title={lang === 'vi' ? 'Chia đôi' : 'Split View'}
             >
-              {lang === 'vi' ? 'Mặc định' : 'Split'}
+              Mặc định
             </button>
             <button
               onClick={() => setLayoutMode('timer-focused')}
-              className={`px-2 py-0.5 rounded text-[11px] transition-all font-semibold ${layoutMode === 'timer-focused' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${layoutMode === 'timer-focused' ? 'bg-card text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
               title={lang === 'vi' ? 'Ưu tiên Hẹn giờ' : 'Timer Focus'}
             >
-              {lang === 'vi' ? 'Hẹn giờ' : 'Timer'}
+              Hẹn giờ
             </button>
             <button
               onClick={() => setLayoutMode('doc-focused')}
-              className={`px-2 py-0.5 rounded text-[11px] transition-all font-semibold ${layoutMode === 'doc-focused' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${layoutMode === 'doc-focused' ? 'bg-card text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
               title={lang === 'vi' ? 'Ưu tiên Tài liệu' : 'Document Focus'}
             >
-              {lang === 'vi' ? 'Tài liệu' : 'Doc'}
+              Tài liệu
             </button>
             <button
               onClick={() => setLayoutMode('timer-minimal')}
-              className={`px-2 py-0.5 rounded text-[11px] transition-all font-semibold ${layoutMode === 'timer-minimal' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${layoutMode === 'timer-minimal' ? 'bg-card text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
               title={lang === 'vi' ? 'Tối giản hẹn giờ' : 'Minimal Timer'}
             >
-              {lang === 'vi' ? 'Tối giản' : 'Minimal'}
+              Tối giản
             </button>
           </div>
 
-          <span className="text-xs font-semibold text-foreground bg-muted px-2.5 py-1 rounded-full border border-border">
-            {lang === 'vi' ? `Chu kỳ ${currentCycle}/${config.totalCycles}` : `Cycle ${currentCycle}/${config.totalCycles}`}
+          <span className="text-xs font-semibold text-foreground bg-muted px-2.5 py-1 rounded-md border border-border">
+            Chu kỳ {currentCycle}/{config.totalCycles}
           </span>
           <button
             onClick={() => {
               endSession()
               navigate('/focus')
             }}
-            className="p-1.5 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground transition-all"
+            className="p-1.5 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-all"
             aria-label="Thoát phiên học"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
       </div>

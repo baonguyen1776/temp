@@ -6,104 +6,115 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Hallmark · macrostructure: Workbench · theme: lumen-workbench · mode: OKLCH */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.148 0.004 228.8);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.148 0.004 228.8);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.148 0.004 228.8);
-  --primary: oklch(0.5 0.134 242.749);
-  --primary-foreground: oklch(0.977 0.013 236.62);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.963 0.002 197.1);
-  --muted-foreground: oklch(0.56 0.021 213.5);
-  --accent: oklch(0.963 0.002 197.1);
-  --accent-foreground: oklch(0.218 0.008 223.9);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.925 0.005 214.3);
-  --input: oklch(0.925 0.005 214.3);
-  --ring: oklch(0.723 0.014 214.4);
-  --chart-1: oklch(0.828 0.111 230.318);
-  --chart-2: oklch(0.685 0.169 237.323);
-  --chart-3: oklch(0.588 0.158 241.966);
-  --chart-4: oklch(0.5 0.134 242.749);
-  --chart-5: oklch(0.443 0.11 240.79);
-  --radius: 0.875rem;
-  --sidebar: oklch(0.987 0.002 197.1);
-  --sidebar-foreground: oklch(0.148 0.004 228.8);
-  --sidebar-primary: oklch(0.588 0.158 241.966);
-  --sidebar-primary-foreground: oklch(0.977 0.013 236.62);
-  --sidebar-accent: oklch(0.963 0.002 197.1);
-  --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
-  --sidebar-border: oklch(0.925 0.005 214.3);
-  --sidebar-ring: oklch(0.723 0.014 214.4);
+  /* Hallmark Tinted Paper Base (Light Mode) - cool slate/violet tint (hue 250) */
+  --background: oklch(98.2% 0.005 250);
+  --foreground: oklch(18% 0.014 250);
+  --card: oklch(99% 0.003 250);
+  --card-foreground: oklch(18% 0.014 250);
+  --popover: oklch(99% 0.003 250);
+  --popover-foreground: oklch(18% 0.014 250);
+  
+  /* Primary Accent: Precision Indigo (Hue 255, Chroma 0.19) */
+  --primary: oklch(54% 0.20 255);
+  --primary-foreground: oklch(98% 0.005 250);
+  
+  --secondary: oklch(95% 0.008 250);
+  --secondary-foreground: oklch(25% 0.014 250);
+  --muted: oklch(94.5% 0.007 250);
+  --muted-foreground: oklch(50% 0.012 250);
+  --accent: oklch(95% 0.008 250);
+  --accent-foreground: oklch(22% 0.014 250);
+  
+  --destructive: oklch(58% 0.22 25);
+  --border: oklch(90% 0.008 250);
+  --input: oklch(90% 0.008 250);
+  --ring: oklch(54% 0.20 255 / 0.4);
+  
+  --chart-1: oklch(62% 0.18 255);
+  --chart-2: oklch(65% 0.16 160);
+  --chart-3: oklch(70% 0.18 70);
+  --chart-4: oklch(60% 0.20 310);
+  --chart-5: oklch(68% 0.15 35);
+  --radius: 0.625rem;
+  
+  --sidebar: oklch(97.2% 0.006 250);
+  --sidebar-foreground: oklch(18% 0.014 250);
+  --sidebar-primary: oklch(54% 0.20 255);
+  --sidebar-primary-foreground: oklch(98% 0.005 250);
+  --sidebar-accent: oklch(93.5% 0.008 250);
+  --sidebar-accent-foreground: oklch(18% 0.014 250);
+  --sidebar-border: oklch(91% 0.007 250);
+  --sidebar-ring: oklch(54% 0.20 255 / 0.4);
 
-  /* Custom variables from recall-ai-planner mapped to the new theme variables */
+  /* Mapped design tokens */
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
   --color-background: var(--card);
-  /* Cards/containers background */
   --color-border: var(--border);
   --color-surface: var(--muted);
   --color-text-primary: var(--foreground);
   --color-text-secondary: var(--muted-foreground);
   --color-text-light: var(--muted-foreground);
-  --color-status-success: oklch(0.627 0.194 149.251);
-  /* beautiful radix green */
+  --color-status-success: oklch(63% 0.19 149);
   --color-status-error: var(--destructive);
-  --color-status-warning: oklch(0.769 0.188 70.08);
-  /* beautiful radix yellow */
+  --color-status-warning: oklch(75% 0.18 70);
   --color-status-info: var(--primary);
 
-  /* Mastery levels */
-  --mastery-strong: #10B981;
-  --mastery-learning: #F59E0B;
-  --mastery-weak: #EF4444;
-  --mastery-untested: #8B5CF6;
-  --mastery-untested-fg: #FFFFFF;
+  /* Mastery indicators */
+  --mastery-strong: oklch(63% 0.19 149);
+  --mastery-learning: oklch(75% 0.18 70);
+  --mastery-weak: oklch(58% 0.22 25);
+  --mastery-untested: oklch(60% 0.18 280);
+  --mastery-untested-fg: oklch(98% 0.005 250);
 
   /* Dashboard specific */
-  --focus-session: #EC4899;
-  --remediate: #8B5CF6;
+  --focus-session: oklch(60% 0.22 340);
+  --remediate: oklch(60% 0.18 280);
 }
 
 .dark {
-  --background: oklch(0.148 0.004 228.8);
-  --foreground: oklch(0.987 0.002 197.1);
-  --card: oklch(0.218 0.008 223.9);
-  --card-foreground: oklch(0.987 0.002 197.1);
-  --popover: oklch(0.218 0.008 223.9);
-  --popover-foreground: oklch(0.987 0.002 197.1);
-  --primary: oklch(0.443 0.11 240.79);
-  --primary-foreground: oklch(0.977 0.013 236.62);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.275 0.011 216.9);
-  --muted-foreground: oklch(0.723 0.014 214.4);
-  --accent: oklch(0.275 0.011 216.9);
-  --accent-foreground: oklch(0.987 0.002 197.1);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.56 0.021 213.5);
-  --chart-1: oklch(0.828 0.111 230.318);
-  --chart-2: oklch(0.685 0.169 237.323);
-  --chart-3: oklch(0.588 0.158 241.966);
-  --chart-4: oklch(0.5 0.134 242.749);
-  --chart-5: oklch(0.443 0.11 240.79);
-  --sidebar: oklch(0.218 0.008 223.9);
-  --sidebar-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-primary: oklch(0.685 0.169 237.323);
-  --sidebar-primary-foreground: oklch(0.293 0.066 243.157);
-  --sidebar-accent: oklch(0.275 0.011 216.9);
-  --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.56 0.021 213.5);
+  /* Hallmark Tinted Dark Base - midnight slate (hue 250, L 14.5%) */
+  --background: oklch(14.5% 0.012 250);
+  --foreground: oklch(95% 0.006 250);
+  --card: oklch(18% 0.012 250);
+  --card-foreground: oklch(95% 0.006 250);
+  --popover: oklch(18% 0.012 250);
+  --popover-foreground: oklch(95% 0.006 250);
+  
+  /* Primary Accent in dark mode: adjusted lightness */
+  --primary: oklch(62% 0.19 255);
+  --primary-foreground: oklch(98% 0.005 250);
+  
+  --secondary: oklch(23% 0.012 250);
+  --secondary-foreground: oklch(92% 0.006 250);
+  --muted: oklch(22% 0.010 250);
+  --muted-foreground: oklch(68% 0.010 250);
+  --accent: oklch(24% 0.012 250);
+  --accent-foreground: oklch(95% 0.006 250);
+  
+  --destructive: oklch(65% 0.22 25);
+  --border: oklch(28% 0.010 250);
+  --input: oklch(28% 0.010 250);
+  --ring: oklch(62% 0.19 255 / 0.4);
+  
+  --chart-1: oklch(68% 0.18 255);
+  --chart-2: oklch(70% 0.16 160);
+  --chart-3: oklch(75% 0.18 70);
+  --chart-4: oklch(65% 0.20 310);
+  --chart-5: oklch(72% 0.15 35);
+  
+  --sidebar: oklch(16% 0.012 250);
+  --sidebar-foreground: oklch(95% 0.006 250);
+  --sidebar-primary: oklch(62% 0.19 255);
+  --sidebar-primary-foreground: oklch(98% 0.005 250);
+  --sidebar-accent: oklch(22% 0.012 250);
+  --sidebar-accent-foreground: oklch(95% 0.006 250);
+  --sidebar-border: oklch(26% 0.010 250);
+  --sidebar-ring: oklch(62% 0.19 255 / 0.4);
 
-  /* Custom variables from recall-ai-planner for dark mode mapped to dynamic dark variables */
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
@@ -113,9 +124,9 @@
   --color-text-primary: var(--foreground);
   --color-text-secondary: var(--muted-foreground);
   --color-text-light: var(--muted-foreground);
-  --color-status-success: oklch(0.627 0.194 149.251);
+  --color-status-success: oklch(65% 0.19 149);
   --color-status-error: var(--destructive);
-  --color-status-warning: oklch(0.769 0.188 70.08);
+  --color-status-warning: oklch(78% 0.18 70);
   --color-status-info: var(--primary);
 }
 
@@ -215,13 +226,13 @@ button,
 input,
 select,
 textarea {
-  font-family: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-family: 'Inter Variable', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
 }
 
 .font-mono,
 code,
 pre {
-  font-family: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-family: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
 }
 
 body {
@@ -553,6 +564,40 @@ select {
 }
 .dark .banner-paused-btn-resume:hover {
   background-color: #4f46e5 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Hallmark Design Utilities (Micro-type, Tabular Nums, Blueprint Grid)
+ * ───────────────────────────────────────────────────────────── */
+.micro-type {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+.rule-blueprint {
+  background-image: linear-gradient(to right, var(--border) 1px, transparent 1px),
+                    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.hallmark-card {
+  @apply bg-card border border-border rounded-xl transition-all duration-200;
+}
+
+.hallmark-card-hover {
+  @apply hover:border-primary/40 hover:shadow-xs hover:-translate-y-0.5;
+}
+
+.hallmark-badge {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border border-border bg-muted/50 text-foreground;
 }
 
 .banner-paused-btn-end {

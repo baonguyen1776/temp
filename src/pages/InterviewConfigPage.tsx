@@ -83,12 +83,13 @@ export default function InterviewConfigPage() {
     <div className="max-w-2xl mx-auto space-y-6 py-6 px-4">
       {/* ─── HEADING ─── */}
       <div className="border-b border-border pb-4">
-        <h1 className="text-2xl font-extrabold text-foreground">
-          {lang === 'vi' ? 'Cấu hình phiên Interview' : 'AI Interview Configuration'}
+        <span className="micro-type text-primary block mb-1">INTERVIEW WIZARD</span>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+          {lang === 'vi' ? 'Cấu hình phiên AI Interview' : 'AI Interview Configuration'}
         </h1>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-sm text-muted-foreground">
-            {lang === 'vi' ? 'Kế hoạch học tập:' : 'Study Plan:'}
+        <div className="flex items-center gap-2 mt-2">
+          <span className="micro-type text-muted-foreground text-[10px]">
+            {lang === 'vi' ? 'KẾ HOẠCH HỌC TẬP:' : 'STUDY PLAN:'}
           </span>
           <select
             value={currentPlan?.id || ''}
@@ -96,7 +97,7 @@ export default function InterviewConfigPage() {
               const p = plans.find(p => p.id === e.target.value)
               if (p) setActivePlan(p)
             }}
-            className="text-xs font-semibold bg-background border border-border rounded px-2.5 py-1 text-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            className="text-xs font-mono font-semibold bg-card border border-border rounded-md px-3 py-1 text-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shadow-2xs"
           >
             {plans.map(p => (
               <option key={p.id} value={p.id}>{p.name}</option>

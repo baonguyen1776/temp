@@ -84,42 +84,42 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* SECTION 1: Quick Stats Row (Pushed to the very top!) */}
+      {/* SECTION 1: Hallmark Stat Strip */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Streak Card */}
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-4 hover:shadow-xs transition-shadow">
-          <div className="w-12 h-12 rounded-xl card-icon-streak flex items-center justify-center">
-            <Flame size={26} className="text-[rgb(236_72_153)]" />
+        <div className="hallmark-card hallmark-card-hover p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-pink-500/10 text-pink-500 flex items-center justify-center shrink-0">
+            <Flame size={22} />
           </div>
           <div>
-            <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{lang === 'vi' ? 'Chuỗi ngày học' : 'Streak'}</p>
-            <p className="text-[rgb(236_72_153)] font-bold text-xl mt-0.5">
-              <span className="font-mono">{mockStats.streak}</span> {lang === 'vi' ? 'ngày' : 'days'}
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{lang === 'vi' ? 'Chuỗi ngày' : 'Streak'}</span>
+            <p className="text-foreground font-bold text-2xl mt-0.5 tabular-nums flex items-baseline gap-1">
+              {mockStats.streak} <span className="text-xs font-normal text-muted-foreground">{lang === 'vi' ? 'ngày' : 'days'}</span>
             </p>
           </div>
         </div>
 
         {/* Hours This Week Card */}
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-4 hover:shadow-xs transition-shadow">
-          <div className="w-12 h-12 rounded-xl card-icon-hours flex items-center justify-center">
-            <Clock size={26} className="text-[rgb(59_130_246)]" />
+        <div className="hallmark-card hallmark-card-hover p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Clock size={22} />
           </div>
           <div>
-            <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{lang === 'vi' ? 'Giờ ôn tuần này' : 'Hours this week'}</p>
-            <p className="text-[rgb(59_130_246)] font-bold text-xl mt-0.5">
-              <span className="font-mono">{mockStats.hoursThisWeek}</span>h
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{lang === 'vi' ? 'Giờ ôn tuần này' : 'Hours this week'}</span>
+            <p className="text-foreground font-bold text-2xl mt-0.5 tabular-nums">
+              {mockStats.hoursThisWeek}h
             </p>
           </div>
         </div>
 
         {/* Sessions Card */}
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-4 hover:shadow-xs transition-shadow">
-          <div className="w-12 h-12 rounded-xl card-icon-sessions flex items-center justify-center">
-            <CheckCircle2 size={26} className="text-[rgb(16_185_129)]" />
+        <div className="hallmark-card hallmark-card-hover p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+            <CheckCircle2 size={22} />
           </div>
           <div>
-            <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{lang === 'vi' ? 'Phiên học' : 'Sessions'}</p>
-            <p className="text-[rgb(16_185_129)] font-bold text-xl mt-0.5 font-mono">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{lang === 'vi' ? 'Phiên học' : 'Sessions'}</span>
+            <p className="text-foreground font-bold text-2xl mt-0.5 tabular-nums">
               {mockStats.sessions}
             </p>
           </div>

@@ -5,7 +5,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { usePlanStore } from '@/stores/planStore'
 import { useTheme } from '@/components/theme-provider'
 import { useTranslation } from '@/stores/languageStore'
-import { Menu, Bell, LogOut, Settings, User, ChevronRight, Sun, Moon, Languages } from 'lucide-react'
+import { Menu, Bell, LogOut, Settings, User, Sun, Moon, Languages } from 'lucide-react'
 
 // ─── Breadcrumb Builder ──────────────────────────────────────────
 interface Breadcrumb {
@@ -121,25 +121,25 @@ export function Header() {
   }
 
   return (
-    <header className="bg-card border-b border-border">
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+    <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border/80 transition-colors">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
         {/* Left: Hamburger + Title + Breadcrumbs */}
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={toggleSidebar}
-            className="p-2 hover:bg-zinc-100 rounded-lg transition-colors lg:hidden"
+            className="p-1.5 hover:bg-muted rounded-md transition-colors lg:hidden text-muted-foreground"
             aria-label="Toggle sidebar"
           >
-            <Menu size={18} className="text-foreground" />
+            <Menu size={18} />
           </button>
 
           <div className="min-w-0">
             {/* Breadcrumbs */}
             {breadcrumbs.length > 0 && (
-              <nav className="flex items-center gap-1 text-[11px] text-muted-foreground mb-0.5">
+              <nav className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground mb-0.5">
                 {breadcrumbs.map((crumb, idx) => (
-                  <span key={idx} className="flex items-center gap-1">
-                    {idx > 0 && <ChevronRight size={10} />}
+                  <span key={idx} className="flex items-center gap-1.5">
+                    {idx > 0 && <span className="text-muted-foreground/50">/</span>}
                     {crumb.path ? (
                       <Link
                         to={crumb.path}
@@ -148,7 +148,7 @@ export function Header() {
                         {crumb.label}
                       </Link>
                     ) : (
-                      <span className="text-foreground font-medium">{crumb.label}</span>
+                      <span className="text-foreground font-semibold">{crumb.label}</span>
                     )}
                   </span>
                 ))}
@@ -156,7 +156,7 @@ export function Header() {
             )}
 
             {/* Page Title */}
-            <h1 className="text-base font-bold text-foreground truncate">
+            <h1 className="text-sm sm:text-base font-semibold text-foreground truncate tracking-tight">
               {pageTitle}
             </h1>
           </div>
