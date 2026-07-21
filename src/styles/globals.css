@@ -8,6 +8,7 @@
 
 /* Hallmark · macrostructure: Workbench · theme: lumen-workbench · mode: OKLCH */
 :root {
+  color-scheme: light;
   /* Hallmark Tinted Paper Base (Light Mode) - cool slate/violet tint (hue 250) */
   --background: oklch(98.2% 0.005 250);
   --foreground: oklch(18% 0.014 250);
@@ -31,6 +32,7 @@
   --border: oklch(90% 0.008 250);
   --input: oklch(90% 0.008 250);
   --ring: oklch(54% 0.20 255 / 0.4);
+  --edge-color: oklch(48% 0.06 250);
   
   --chart-1: oklch(62% 0.18 255);
   --chart-2: oklch(65% 0.16 160);
@@ -76,29 +78,31 @@
 }
 
 .dark {
-  /* Hallmark Tinted Dark Base - midnight slate (hue 250, L 14.5%) */
-  --background: oklch(14.5% 0.012 250);
-  --foreground: oklch(95% 0.006 250);
-  --card: oklch(18% 0.012 250);
-  --card-foreground: oklch(95% 0.006 250);
-  --popover: oklch(18% 0.012 250);
-  --popover-foreground: oklch(95% 0.006 250);
+  color-scheme: dark;
+  /* Hallmark Tinted Dark Base - midnight slate (hue 250, L 14%) */
+  --background: oklch(14% 0.014 250);
+  --foreground: oklch(93% 0.008 250);
+  --card: oklch(18.5% 0.014 250);
+  --card-foreground: oklch(93% 0.008 250);
+  --popover: oklch(18.5% 0.014 250);
+  --popover-foreground: oklch(93% 0.008 250);
   
   /* Primary Accent in dark mode: adjusted lightness */
-  --primary: oklch(62% 0.19 255);
+  --primary: oklch(64% 0.20 255);
   --primary-foreground: oklch(98% 0.005 250);
   
-  --secondary: oklch(23% 0.012 250);
+  --secondary: oklch(24% 0.014 250);
   --secondary-foreground: oklch(92% 0.006 250);
-  --muted: oklch(22% 0.010 250);
-  --muted-foreground: oklch(68% 0.010 250);
-  --accent: oklch(24% 0.012 250);
-  --accent-foreground: oklch(95% 0.006 250);
+  --muted: oklch(22.5% 0.012 250);
+  --muted-foreground: oklch(78% 0.012 250);
+  --accent: oklch(25% 0.014 250);
+  --accent-foreground: oklch(94% 0.006 250);
   
   --destructive: oklch(65% 0.22 25);
-  --border: oklch(28% 0.010 250);
-  --input: oklch(28% 0.010 250);
-  --ring: oklch(62% 0.19 255 / 0.4);
+  --border: oklch(35% 0.018 250);
+  --input: oklch(33% 0.016 250);
+  --ring: oklch(64% 0.20 255 / 0.5);
+  --edge-color: oklch(76% 0.16 255);
   
   --chart-1: oklch(68% 0.18 255);
   --chart-2: oklch(70% 0.16 160);
@@ -106,14 +110,14 @@
   --chart-4: oklch(65% 0.20 310);
   --chart-5: oklch(72% 0.15 35);
   
-  --sidebar: oklch(16% 0.012 250);
-  --sidebar-foreground: oklch(95% 0.006 250);
-  --sidebar-primary: oklch(62% 0.19 255);
+  --sidebar: oklch(15.5% 0.014 250);
+  --sidebar-foreground: oklch(93% 0.008 250);
+  --sidebar-primary: oklch(64% 0.20 255);
   --sidebar-primary-foreground: oklch(98% 0.005 250);
-  --sidebar-accent: oklch(22% 0.012 250);
-  --sidebar-accent-foreground: oklch(95% 0.006 250);
-  --sidebar-border: oklch(26% 0.010 250);
-  --sidebar-ring: oklch(62% 0.19 255 / 0.4);
+  --sidebar-accent: oklch(23% 0.014 250);
+  --sidebar-accent-foreground: oklch(94% 0.006 250);
+  --sidebar-border: oklch(32% 0.016 250);
+  --sidebar-ring: oklch(64% 0.20 255 / 0.5);
 
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
@@ -387,11 +391,29 @@ select {
   pointer-events: none;
 }
 
-/* ─── Concept Graph Node Modifiers ─── */
+/* ─── Concept Graph Node Base & Dark Overrides ─── */
+.concept-node {
+  border-width: 1.5px;
+  border-style: solid;
+  border-radius: 0.625rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.dark .concept-node {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
 .concept-node--untested {
   background-color: var(--color-surface);
   color: var(--color-text-primary);
   border-color: var(--border);
+}
+
+.dark .concept-node--untested {
+  background-color: oklch(21% 0.015 250);
+  color: oklch(93% 0.008 250);
+  border-color: oklch(38% 0.02 250);
 }
 
 .concept-node--weak {
@@ -400,10 +422,24 @@ select {
   border-color: rgba(239, 68, 68, 0.4);
 }
 
+.dark .concept-node--weak {
+  background-color: oklch(24% 0.08 25);
+  color: oklch(94% 0.03 25);
+  border-color: oklch(65% 0.22 25);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.35), 0 2px 6px rgba(0,0,0,0.4);
+}
+
 .concept-node--learning {
   background-color: var(--mastery-learning);
   color: #FFFFFF;
   border-color: rgba(245, 158, 11, 0.4);
+}
+
+.dark .concept-node--learning {
+  background-color: oklch(25% 0.07 70);
+  color: oklch(95% 0.03 70);
+  border-color: oklch(75% 0.18 70);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.35), 0 2px 6px rgba(0,0,0,0.4);
 }
 
 .concept-node--strong {
@@ -412,11 +448,25 @@ select {
   border-color: rgba(16, 185, 129, 0.4);
 }
 
+.dark .concept-node--strong {
+  background-color: oklch(22% 0.07 149);
+  color: oklch(95% 0.03 149);
+  border-color: oklch(65% 0.19 149);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35), 0 2px 6px rgba(0,0,0,0.4);
+}
+
 .concept-node--remediating {
   background-color: var(--remediate);
   color: #FFFFFF;
   border-color: rgba(139, 92, 246, 0.4);
   animation: conceptPulse 2s ease-in-out infinite;
+}
+
+.dark .concept-node--remediating {
+  background-color: oklch(24% 0.08 280);
+  color: oklch(95% 0.03 280);
+  border-color: oklch(65% 0.20 280);
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.45), 0 2px 6px rgba(0,0,0,0.4);
 }
 
 @keyframes conceptPulse {
@@ -469,6 +519,27 @@ select {
 }
 .dark .input-shadcn[aria-invalid="true"] {
   @apply border-destructive/50 ring-destructive/40;
+}
+
+/* Date picker calendar indicator in dark mode */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1 !important;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.8) !important;
+  opacity: 0.9 !important;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1 !important;
+}
+
+/* Ensure Lucide and inline SVGs inherit vivid contrast in dark mode */
+.dark svg {
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .dialog-overlay-shadcn {

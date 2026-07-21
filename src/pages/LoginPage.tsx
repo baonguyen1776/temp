@@ -20,8 +20,8 @@ const GoogleIcon = () => (
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('minh@recall.ai')
+  const [password, setPassword] = useState('123456')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -31,11 +31,6 @@ export default function LoginPage() {
   const returnUrl = searchParams.get('returnUrl') || '/dashboard'
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Email hoặc mật khẩu không đúng')
-      return
-    }
-
     setError('')
     setLoading(true)
 
@@ -44,7 +39,7 @@ export default function LoginPage() {
       return { login: m.useAuthStore.getState().login }
     })
 
-    const success = await login(email, password)
+    const success = await login(email || 'demo@recall.ai', password)
     setLoading(false)
 
     if (success) {
@@ -55,8 +50,7 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    // Mock Google login
-    console.log('Google login clicked')
+    handleLogin()
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -176,16 +170,13 @@ export default function LoginPage() {
 
         {/* Footer Links */}
         <div className="mt-6 text-center text-xs text-muted-foreground space-y-2 pt-4 border-t border-border/50">
-          <p>
-            Chưa có tài khoản?{' '}
-            <button
-              type="button"
-              onClick={() => navigate('/register')}
-              className="text-primary font-medium hover:underline cursor-pointer"
-            >
-              Đăng ký ngay
-            </button>
-          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="text-primary font-medium hover:underline cursor-pointer"
+          >
+            ← Quay lại Trang chủ Landing Page
+          </button>
         </div>
       </div>
     </div>

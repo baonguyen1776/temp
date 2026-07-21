@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import { AuthGuard, AuthLayout } from '@/components/auth/AuthGuard'
 
@@ -23,8 +23,14 @@ import PlansPage from '@/pages/PlansPage'
 import FocusPage from '@/pages/FocusPage'
 import HistoryPage from '@/pages/HistoryPage'
 
+import LandingPage from '@/pages/LandingPage'
+
 const router = createBrowserRouter([
-  // ─── Public routes (redirect if already logged in) ───
+  // ─── Public routes ───────────────────────────────────
+  {
+    path: '/landing',
+    element: <LandingPage />,
+  },
   {
     path: '/login',
     element: (
@@ -60,10 +66,10 @@ const router = createBrowserRouter([
     ),
   },
 
-  // ─── Root redirect ───────────────────────────────────
+  // ─── Root route ───────────────────────────────────────
   {
     path: '/',
-    element: <Navigate to="/dashboard" replace />,
+    element: <LandingPage />,
   },
 
   // ─── App layout routes (with sidebar + header) ───────

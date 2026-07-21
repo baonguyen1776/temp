@@ -119,7 +119,7 @@ export function Sidebar() {
                   {active && (
                     <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary" />
                   )}
-                  <Icon size={18} className={active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'} />
+                  <Icon size={18} strokeWidth={2} className={active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'} />
                   <span>{item.label}</span>
                   {showPulse && (
                     <span className="ml-auto flex items-center gap-1.5">
@@ -160,7 +160,7 @@ export function Sidebar() {
                   {active && (
                     <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary" />
                   )}
-                  <Icon size={18} className={active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'} />
+                  <Icon size={18} strokeWidth={2} className={active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'} />
                   <span>{item.label}</span>
                 </Link>
               )
@@ -184,17 +184,17 @@ export function Sidebar() {
 
           <Link
             to="/profile"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors group"
           >
-            <Settings size={15} />
+            <Settings size={16} strokeWidth={2} className="text-muted-foreground group-hover:text-foreground" />
             <span>{t('settings')}</span>
           </Link>
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left group"
           >
-            <LogOut size={15} />
+            <LogOut size={16} strokeWidth={2} className="text-muted-foreground group-hover:text-destructive" />
             <span>{t('logout')}</span>
           </button>
         </div>

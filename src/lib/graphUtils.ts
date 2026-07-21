@@ -88,7 +88,8 @@ export function getLayoutedElements(
       const prereq = conceptMap.get(prereqId)
       // Warning if prerequisite is unreviewed (null) or weak (< 0.6)
       const isSourceWeak = prereq && (prereq.mastery === null || prereq.mastery < 0.6)
-      const edgeColor = isMini ? '#4B5563' : '#111827' // Dark/bold black/grey colors for all edges
+      // Dynamic edge color from CSS custom property, fallback to Indigo
+      const edgeColor = 'var(--edge-color, #6366f1)'
 
       edges.push({
         id: `e${prereqId}-${concept.id}`,
@@ -100,7 +101,7 @@ export function getLayoutedElements(
         className: isSourceWeak ? 'react-flow__edge--prerequisite-weak' : '',
         style: {
           stroke: edgeColor,
-          strokeWidth: isMini ? 1.5 : 2.5
+          strokeWidth: isMini ? 1.8 : 2.5
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,

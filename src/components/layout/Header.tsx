@@ -130,7 +130,7 @@ export function Header() {
             className="p-1.5 hover:bg-muted rounded-md transition-colors lg:hidden text-muted-foreground"
             aria-label="Toggle sidebar"
           >
-            <Menu size={18} />
+            <Menu size={18} strokeWidth={2} />
           </button>
 
           <div className="min-w-0">
@@ -139,7 +139,7 @@ export function Header() {
               <nav className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground mb-0.5">
                 {breadcrumbs.map((crumb, idx) => (
                   <span key={idx} className="flex items-center gap-1.5">
-                    {idx > 0 && <span className="text-muted-foreground/50">/</span>}
+                    {idx > 0 && <span className="text-muted-foreground/60">/</span>}
                     {crumb.path ? (
                       <Link
                         to={crumb.path}
@@ -167,22 +167,22 @@ export function Header() {
           {/* Language Toggle */}
           <button
             onClick={toggleLanguage}
-            className="p-2 hover:bg-muted rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground"
+            className="p-2 hover:bg-muted rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold text-foreground hover:text-foreground"
             aria-label="Đổi ngôn ngữ"
             title="Đổi ngôn ngữ / Change Language"
           >
-            <Languages size={18} />
+            <Languages size={18} strokeWidth={2} className="text-muted-foreground" />
             <span className="uppercase">{lang}</span>
           </button>
 
           {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+            className="p-2 hover:bg-muted rounded-lg transition-colors text-foreground"
             aria-label="Đổi giao diện"
             title="Đổi giao diện / Toggle Theme"
           >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === 'dark' ? <Sun size={18} strokeWidth={2} className="text-amber-400" /> : <Moon size={18} strokeWidth={2} className="text-indigo-600" />}
           </button>
 
           {/* Notification Bell */}
@@ -190,7 +190,7 @@ export function Header() {
             className="relative p-2 hover:bg-muted rounded-lg transition-colors"
             aria-label="Thông báo"
           >
-            <Bell size={18} className="text-muted-foreground hover:text-foreground" />
+            <Bell size={18} strokeWidth={2} className="text-muted-foreground hover:text-foreground" />
             {hasNotifications && (
               <span className="absolute top-1.5 right-1.5 min-w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center px-0.5">
                 {notificationCount}

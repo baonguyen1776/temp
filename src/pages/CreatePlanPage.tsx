@@ -16,7 +16,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Upload, X, ZoomIn, ZoomOut, Maximize2, Minimize2, Plus, Trash2, BookOpen } from 'lucide-react'
+import { Upload, X, ZoomIn, ZoomOut, Maximize2, Minimize2, Plus, Trash2, BookOpen, FileText } from 'lucide-react'
 import { usePlanStore } from '@/stores/planStore'
 import { useTranslation } from '@/stores/languageStore'
 import { StudyPlan } from '@/models/StudyPlan'
@@ -103,18 +103,21 @@ function getLayoutedNodes(conceptsList: Concept[]): Node[] {
       sourcePosition: Position.Right,
       style: {
         background: '#8B5CF6',
-        color: '#fff',
+        color: '#ffffff',
         border: '2px solid #6D28D9',
         borderRadius: '8px',
         padding: '8px 12px',
         fontSize: '13px',
         fontWeight: '500',
+        boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
       },
     }
   })
 }
 
 const initialNodes: Node[] = getLayoutedNodes(initialConcepts)
+
+const edgeStrokeColor = 'var(--edge-color, #6366f1)'
 
 const initialEdges: Edge[] = [
   { 
@@ -123,8 +126,8 @@ const initialEdges: Edge[] = [
     target: '2', 
     type: 'smoothstep',
     pathOptions: { borderRadius: 10 },
-    style: { stroke: '#111827', strokeWidth: 2.5 },
-    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+    style: { stroke: edgeStrokeColor, strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: edgeStrokeColor }
   },
   { 
     id: 'e1-3', 
@@ -132,8 +135,8 @@ const initialEdges: Edge[] = [
     target: '3', 
     type: 'smoothstep',
     pathOptions: { borderRadius: 10 },
-    style: { stroke: '#111827', strokeWidth: 2.5 },
-    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+    style: { stroke: edgeStrokeColor, strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: edgeStrokeColor }
   },
   { 
     id: 'e1-4', 
@@ -141,8 +144,8 @@ const initialEdges: Edge[] = [
     target: '4', 
     type: 'smoothstep',
     pathOptions: { borderRadius: 10 },
-    style: { stroke: '#111827', strokeWidth: 2.5 },
-    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+    style: { stroke: edgeStrokeColor, strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: edgeStrokeColor }
   },
   { 
     id: 'e4-5', 
@@ -150,8 +153,8 @@ const initialEdges: Edge[] = [
     target: '5', 
     type: 'smoothstep',
     pathOptions: { borderRadius: 10 },
-    style: { stroke: '#111827', strokeWidth: 2.5 },
-    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+    style: { stroke: edgeStrokeColor, strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: edgeStrokeColor }
   },
   { 
     id: 'e5-6', 
@@ -159,8 +162,8 @@ const initialEdges: Edge[] = [
     target: '6', 
     type: 'smoothstep',
     pathOptions: { borderRadius: 10 },
-    style: { stroke: '#111827', strokeWidth: 2.5 },
-    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' }
+    style: { stroke: edgeStrokeColor, strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: edgeStrokeColor }
   },
 ]
 
@@ -247,8 +250,8 @@ function GraphEditor({
         target, 
         type: 'smoothstep',
         pathOptions: { borderRadius: 10 },
-        style: { stroke: '#111827', strokeWidth: 2.5 },
-        markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: '#111827' } 
+        style: { stroke: 'var(--edge-color, #6366f1)', strokeWidth: 2.5 },
+        markerEnd: { type: MarkerType.Arrow, width: 14, height: 14, color: 'var(--edge-color, #6366f1)' } 
       }
     ]
 
@@ -361,7 +364,7 @@ function GraphEditor({
 
       {/* Instruction Banner */}
       {!isFullscreen && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-text-primary shrink-0">
+        <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-xs text-primary shrink-0">
           {lang === 'vi' ? (
             <>👉 <b>Mẹo chỉnh sửa:</b> Kéo từ viền node A đến node B để thêm quan hệ (A tiên quyết của B). Click chọn cạnh nối để XÓA liên kết. Click node để đổi tên/độ khó.</>
           ) : (
@@ -576,12 +579,12 @@ export default function CreatePlanPage() {
           target: c.id,
           type: 'smoothstep',
           pathOptions: { borderRadius: 10 },
-          style: { stroke: '#111827', strokeWidth: 2.5 },
+          style: { stroke: 'var(--edge-color, #6366f1)', strokeWidth: 2.5 },
           markerEnd: { 
             type: MarkerType.Arrow, 
             width: 14, 
             height: 14, 
-            color: '#111827' 
+            color: 'var(--edge-color, #6366f1)' 
           },
         })
       })
@@ -698,15 +701,15 @@ export default function CreatePlanPage() {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
                     s === step
-                      ? 'bg-primary text-white'
+                      ? 'bg-primary text-white shadow-sm'
                       : s < step
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-600'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-muted text-muted-foreground border border-border'
                   }`}
                 >
                   {s < step ? '✓' : s}
                 </div>
-                <span className="text-sm font-medium text-text-secondary">
+                <span className={`text-sm font-medium ${s === step ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>
                   {s === 1 ? (lang === 'vi' ? 'Thông tin' : 'Info') : s === 2 ? (lang === 'vi' ? 'Xử lý' : 'Process') : (lang === 'vi' ? 'Kiểm tra' : 'Verify')}
                 </span>
               </div>
@@ -753,22 +756,24 @@ export default function CreatePlanPage() {
                 <div className="flex gap-2 mb-4">
                   <button
                     onClick={() => setUploadMode('file')}
-                    className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                       uploadMode === 'file'
-                        ? 'bg-primary text-white'
-                        : 'bg-muted text-text-secondary hover:bg-muted/80'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border'
                     }`}
                   >
+                    <Upload size={16} />
                     {lang === 'vi' ? 'Tải file' : 'Upload File'}
                   </button>
                   <button
                     onClick={() => setUploadMode('text')}
-                    className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${
                       uploadMode === 'text'
-                        ? 'bg-primary text-white'
-                        : 'bg-muted text-text-secondary hover:bg-muted/80'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border'
                     }`}
                   >
+                    <FileText size={16} />
                     {lang === 'vi' ? 'Dán văn bản' : 'Paste Text'}
                   </button>
                 </div>
@@ -779,36 +784,39 @@ export default function CreatePlanPage() {
                     onDragLeave={handleDragLeave}
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
-                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-all bg-card ${
                       isDragging
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary'
+                        ? 'border-primary bg-primary/10 shadow-md'
+                        : 'border-border hover:border-primary/50'
                     }`}
                   >
                     {formData.file ? (
-                      <div className="flex items-center justify-between p-3 bg-surface rounded border border-border">
-                        <div className="flex items-center gap-2">
-                          <Upload className="w-4 h-4 text-primary" />
+                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
+                        <div className="flex items-center gap-3">
+                          <Upload className="w-5 h-5 text-primary shrink-0" />
                           <div className="text-left">
-                            <p className="text-sm font-medium text-text-primary">
+                            <p className="text-sm font-semibold text-foreground">
                               {formData.file.name}
                             </p>
-                            <p className="text-xs text-text-light">
+                            <p className="text-xs text-muted-foreground">
                               {(formData.file.size / 1024 / 1024).toFixed(2)} MB
                             </p>
                           </div>
                         </div>
                         <button
                           onClick={handleRemoveFile}
-                          className="p-1 hover:bg-gray-200 rounded transition-colors"
+                          className="p-1.5 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-destructive"
                         >
-                          <X className="w-4 h-4 text-text-secondary" />
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        <p className="text-text-secondary">{lang === 'vi' ? 'Kéo thả file PDF vào đây' : 'Drag & drop PDF file here'}</p>
-                        <p className="text-text-light text-sm">{lang === 'vi' ? 'hoặc' : 'or'}</p>
+                      <div className="space-y-3 py-2">
+                        <Upload className="w-10 h-10 text-primary/80 mx-auto mb-2" />
+                        <p className="text-foreground font-medium text-sm">
+                          {lang === 'vi' ? 'Kéo thả file PDF vào đây' : 'Drag & drop PDF file here'}
+                        </p>
+                        <p className="text-muted-foreground text-xs">{lang === 'vi' ? 'hoặc' : 'or'}</p>
                         <label className="inline-block">
                           <input
                             type="file"
@@ -816,11 +824,12 @@ export default function CreatePlanPage() {
                             onChange={handleFileSelect}
                             className="hidden"
                           />
-                          <span className="px-4 py-2 bg-primary text-white rounded cursor-pointer hover:bg-primary/90 transition-colors inline-block text-sm font-medium">
+                          <span className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg cursor-pointer transition-all inline-flex items-center gap-2 text-sm shadow-sm hover:scale-[1.02]">
+                            <Upload size={16} />
                             {lang === 'vi' ? 'Chọn file' : 'Select File'}
                           </span>
                         </label>
-                        <p className="text-xs text-text-light">
+                        <p className="text-xs text-muted-foreground pt-1">
                           {lang === 'vi' ? 'Chấp nhận: .pdf, .jpg, .png, .txt (tối đa 20MB)' : 'Accepted: .pdf, .jpg, .png, .txt (max 20MB)'}
                         </p>
                       </div>
@@ -833,7 +842,7 @@ export default function CreatePlanPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, fileText: e.target.value })
                     }
-                    className="w-full h-48 p-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full h-48 p-3 bg-card placeholder:text-muted-foreground border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-sans text-sm"
                   />
                 )}
               </div>

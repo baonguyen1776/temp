@@ -19,9 +19,9 @@ const mockUser: User = {
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
-  // Start authenticated for demo purposes
-  user: mockUser,
-  isAuthenticated: true,
+  // Default to unauthenticated so users see Landing Page & Login first
+  user: null,
+  isAuthenticated: false,
   isLoading: false,
 
   setUser: (user) =>
@@ -33,20 +33,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setIsLoading: (loading) =>
     set({ isLoading: loading }),
 
-  login: async (email: string, _password: string) => {
+  login: async (email?: string, _password?: string) => {
     set({ isLoading: true })
     // Mock API delay
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    if (email) {
-      set({
-        user: { ...mockUser, email },
-        isAuthenticated: true,
-        isLoading: false,
-      })
-      return true
-    }
-    set({ isLoading: false })
-    return false
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const userEmail = email && email.trim() ? email : 'demo@recall.ai'
+    set({
+      user: { ...mockUser, email: userEmail },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    return true
   },
 
   logout: () =>
